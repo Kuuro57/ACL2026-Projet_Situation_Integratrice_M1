@@ -1,0 +1,6 @@
+ID,fonctionnalité,priorité,Sprint
+1,inscription,3,1
+2,connexion/deconnexion,3,1
+3,créer agenda,1,1
+4,visualiser semaine,1,1
+5,ajouter/supprimer/editer rendez-vous,1,1
