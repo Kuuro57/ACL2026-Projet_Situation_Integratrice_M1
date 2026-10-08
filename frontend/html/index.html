@@ -1,1 +1,113 @@
-<!-- A completer -->   
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire d'Agendas - Sprint 1</title>
+</head>
+<body>
+
+    <header>
+        <h1>Mon Application Agenda</h1>
+        
+        <!-- Formulaire de connexion visible si non connecté -->
+        <div id="login-section">
+            <form id="login-form">
+                <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+                <input type="password" id="password" placeholder="Mot de passe" required>
+                <button type="submit">S'identifier</button>
+            </form>
+        </div>
+
+        <!-- Espace utilisateur visible si connecté -->
+        <div id="user-section" style="display: none;">
+            <span id="current-user-name">Bienvenue, Utilisateur</span>
+            <button id="logout-button">Fermer la session</button>
+        </div>
+    </header>
+
+    <!-- CONTENU PRINCIPAL DE L'APPLICATION -->
+    <div id="app-container" style="display: flex;">
+        
+        <aside style="width: 250px; padding: 1rem; border-right: 1px solid #ccc;">
+            <h2>Mes Agendas</h2>
+            
+            <!-- Liste des agendas pour la visualisation simultanée -->
+            <ul id="agenda-list">
+                <!-- Exemple d'élément généré par le JS -->
+                <li>
+                    <input type="checkbox" id="agenda-1" data-agenda-id="1" checked>
+                    <label for="agenda-1">Agenda Personnel</label>
+                </li>
+            </ul>
+
+            <!-- Bouton pour créer un agenda -->
+            <button id="btn-open-create-agenda">Créer un agenda</button>
+        </aside>
+
+        <!--Les Rendez-vous -->
+        <main style="flex-grow: 1; padding: 1rem;">
+            <header style="display: flex; justify-content: space-between;">
+                <h2>Emploi du temps</h2>
+                <button id="btn-open-add-event">Ajouter un rendez-vous</button>
+            </header>
+
+            <!--Liste des rendez-vous -->
+            <div id="calendar-view">
+                <!-- Les rendez-vous seront injectés ici par le JavaScript -->
+                <!-- Exemple de structure de rendez-vous : -->
+                <article class="event-card" data-event-id="101" data-agenda-id="1">
+                    <h3>Réunion de projet</h3>
+                    <p>10:00 - 11:30</p>
+                    <button class="btn-edit-event" data-event-id="101">Modifier</button>
+                    <button class="btn-delete-event" data-event-id="101">Supprimer</button>
+                </article>
+            </div>
+        </main>
+    </div>
+
+    <!--Créer un agenda -->
+    <dialog id="modal-create-agenda">
+        <form id="form-create-agenda" method="dialog">
+            <h3>Nouvel Agenda</h3>
+            <label for="agenda-name">Nom de l'agenda :</label>
+            <input type="text" id="agenda-name" required>
+            <div>
+                <button type="button" class="btn-cancel-modal">Annuler</button>
+                <button type="submit">Créer</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Ajouter / Modifier un rendez-vous -->
+    <dialog id="modal-event">
+        <form id="form-event" method="dialog">
+            <h3 id="modal-event-title">Ajouter un rendez-vous</h3>
+            
+            <input type="hidden" id="event-id">
+            
+            <label for="event-title">Titre :</label>
+            <input type="text" id="event-title" required>
+            
+            <label for="event-agenda">Choisir l'agenda :</label>
+            <select id="event-agenda" required>
+                <!-- Options générées par le JS -->
+                <option value="1">Agenda Personnel</option>
+            </select>
+
+            <label for="event-start">Début :</label>
+            <input type="datetime-local" id="event-start" required>
+            
+            <label for="event-end">Fin :</label>
+            <input type="datetime-local" id="event-end" required>
+
+            <div>
+                <button type="button" class="btn-cancel-modal">Annuler</button>
+                <button type="submit" id="btn-save-event">Enregistrer</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- <script src="app.js"></script> -->
+</body>
+</html>
