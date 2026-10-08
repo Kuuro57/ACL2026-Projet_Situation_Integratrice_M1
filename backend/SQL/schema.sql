@@ -71,10 +71,6 @@ CREATE TABLE eventTag2Event (
   FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE
 );
 
--- Chaque ligne definit une regle de recurrence a partir de event.start.
--- Plusieurs regles par evenement restent possibles, comme dans le schema initial.
--- Exemple : frequence 'semaine' + repeat_interval = 2 => toutes les 2 semaines.
--- Le calcul des occurrences et la validation du fuseau sont faits cote serveur.
 CREATE TABLE frequency2Event (
   frequency_id INTEGER NOT NULL,
   event_id INTEGER NOT NULL,
@@ -86,7 +82,6 @@ CREATE TABLE frequency2Event (
   FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE
 );
 
--- Un evenement peut appartenir a plusieurs calendriers.
 CREATE TABLE calendar2Event (
   calendar_id INTEGER NOT NULL,
   event_id INTEGER NOT NULL,
