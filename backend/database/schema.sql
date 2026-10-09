@@ -76,7 +76,7 @@ CREATE TABLE frequency2Event (
   event_id INTEGER NOT NULL,
   repeat_interval INTEGER NOT NULL DEFAULT 1,
   repeat_until TEXT, -- Derniere limite de recurrence en ISO UTC ; NULL = sans fin
-  time_zone TEXT NOT NULL DEFAULT 'UTC'
+  time_zone TEXT NOT NULL DEFAULT 'UTC',
   PRIMARY KEY (frequency_id, event_id),
   FOREIGN KEY (frequency_id) REFERENCES frequency(id) ON DELETE RESTRICT,
   FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE
