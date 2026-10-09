@@ -1,9 +1,6 @@
 import "express";
-import { randomBytes, randomUUID, scrypt as scryptCallback } from "node:crypto";
-import { promisify } from "node:util";
+import { randomUUID } from "node:crypto";
 import db from "../database/db.js";
-
-const scrypt = promisify(scryptCallback);
 
 export const UserController = {
 
@@ -48,21 +45,11 @@ export const UserController = {
      */
     async create(req, res) {
         try {
-            console.log(req);
-            const { username, email, password } = req.body ?? {};
-
-            if (!username || !password) {
-                return res.status(400).json({ error: "Le nom d'utilisateur et le mot de passe sont obligatoires" });
-            }
-
-            // Hachage du mot de passe
-            const salt = randomBytes(16).toString("hex");
-            const hash = (await scrypt(password, salt, 64)).toString("hex");
-            const passwordHash = `${salt}:${hash}`;
-
+            const { username, email, password: hasedPassword } = req.query ?? {};
             const id = randomUUID();
+
             db.prepare("INSERT INTO user (id, username, email, password_hash) VALUES (?, ?, ?, ?)")
-                .run(id, username, email ?? null, passwordHash);
+                .run(id, username, email ?? null, hasedPassword);
 
             return res.status(201).json({ id, username, email: email ?? null });
         } catch (err) {
