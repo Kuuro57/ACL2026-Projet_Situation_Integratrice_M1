@@ -1,5 +1,6 @@
 import "express";
 import { randomUUID } from "node:crypto";
+import crypto from "crypto"
 import db from "../database/db.js";
 
 export const UserController = {
@@ -12,11 +13,12 @@ export const UserController = {
      */
     async create(req, res) {
         try {
-            const { username, email, password: hasedPassword } = req.query ?? {};
+            const { username, email, password: hashedPassword } = req.query ?? {};
             const id = randomUUID();
+            const doubleHashedPassword = crypto.createHash('sha256').update(hashedPassword).digest('base64');
 
             db.prepare("INSERT INTO user (id, username, email, password_hash) VALUES (?, ?, ?, ?)")
-                .run(id, username, email ?? null, hasedPassword);
+                .run(id, username, email ?? null, doubleHashedPassword);
 
             return res.status(201).json({ id, username, email: email ?? null });
         } catch (err) {
