@@ -23,10 +23,21 @@ export const UserController = {
             return res.status(201).json({ id, username, email: email ?? null });
         } catch (err) {
             if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
-                return res.status(409).json({ error: "Ce nom d'utilisateur est déjà utilisé" });
+                let attributeDuplicate = err.message.split(" ");
+                attributeDuplicate = attributeDuplicate[attributeDuplicate.length - 1];
+                
+                let message = "Impossible d'ajouter l'utilisateur (erreur de contrainte UNIQUE).";
+                if (attributeDuplicate.includes("username")) {
+                    message = "Ce nom d'utilisateur est déjà utilisé.";
+                } else if (attributeDuplicate.includes("email")) {
+                    message = "Cet email est déjà associée à un compte.";
+                }
+
+                return res.status(409).json({ error: message });
             }
+
             console.error(err);
-            return res.status(500).json({ error: "Erreur lors de la création de l'utilisateur" });
+            return res.status(500).json({ error: "Erreur lors de la création de l'utilisateur." });
         }
     }
 

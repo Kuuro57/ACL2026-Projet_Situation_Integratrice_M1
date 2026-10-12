@@ -3,7 +3,7 @@
 CREATE TABLE user (
   id TEXT PRIMARY KEY NOT NULL, -- UUID genere par le serveur
   username TEXT NOT NULL UNIQUE,
-  email TEXT,
+  email TEXT UNIQUE,
   password_hash TEXT NOT NULL
 );
 
