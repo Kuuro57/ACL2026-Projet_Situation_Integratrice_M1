@@ -5,6 +5,8 @@ export class UserRepository {
         this.userDao = userDao;
     }
 
+    // On fait le lien entre l'objet du service et les noms de colonnes en BDD.
+    // Si le pseudo ou l'email est déjà pris, on remonte une erreur plus lisible que celle de SQLite.
     create({ id, username, email = null, passwordHash }) {
         try {
             this.userDao.create({ id, username, email, password_hash: passwordHash });
@@ -39,6 +41,8 @@ export class UserRepository {
         return { id, username, email, passwordHash };
     }
 
+    // Le DAO renvoie une ligne SQL : on la transforme en objet utilisable par le service.
+    // Ici on garde le hash, il sert à vérifier le mdp pendant la connexion.
     findByUsername(username) {
         const row = this.userDao.findByUsername(username);
 

@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { ApplicationError } from "../errors/applicationError.js";
 
+// On fait les mêmes vérifs pour la création et la connexion.
+// Ça évite aussi de planter dans le hash si on reçoit un nombre ou un objet.
 function validateCredentials(username, password) {
     if (typeof username !== "string" || !username.trim()
         || typeof password !== "string" || !password) {
@@ -12,11 +14,12 @@ function validateCredentials(username, password) {
     }
 }
 
-// Conserve le format des mots de passe déjà stockés dans la base.
+// On applique SHA-256 à la valeur reçue dans password.
 function hashPassword(password) {
     return createHash("sha256").update(password).digest("base64");
 }
 
+// Le front doit pas récupérer le hash du mdp, donc on garde juste ces 3 champs.
 function toPublicUser({ id, username, email }) {
     return { id, username, email };
 }
@@ -27,6 +30,8 @@ export class UserService {
         this.secret = secret;
     }
 
+    // On vérifie les infos reçues, puis on prépare l'id et le hash avant de sauvegarder.
+    // L'email est facultatif : s'il est absent, on met null en BDD.
     create(data) {
         const { username, email, password } = data ?? {};
         validateCredentials(username, password);
@@ -45,6 +50,8 @@ export class UserService {
         return toPublicUser(user);
     }
 
+    // On récupère le compte et on compare le hash avec celui du mdp envoyé.
+    // Si c'est bon, on crée un JWT valable 1 jour et on renvoie les infos publiques.
     login(data) {
         const { username, password } = data ?? {};
         validateCredentials(username, password);
@@ -67,6 +74,8 @@ export class UserService {
         return { user: toPublicUser(user), token };
     }
 
+    // Le middleware passe par ici pour vérifier la signature et la date du token.
+    // On distingue le cookie absent d'un token invalide ou expiré.
     verifyAccessToken(token) {
         if (!token) {
             throw new ApplicationError("AUTHENTICATION_REQUIRED", "Authentification requise.");
@@ -79,12 +88,13 @@ export class UserService {
         }
     }
 
+    // Pour /me, on reprend les infos du JWT déjà vérifié par le middleware.
+    // On garde la réponse actuelle, avec id, username, iat et exp.
     getCurrentUser(authenticatedUser) {
         if (!authenticatedUser?.id) {
             throw new ApplicationError("AUTHENTICATION_REQUIRED", "Authentification requise.");
         }
 
-        // /users/me conserve sa réponse actuelle : les données du JWT vérifié.
         return authenticatedUser;
     }
 }

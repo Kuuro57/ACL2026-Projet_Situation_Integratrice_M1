@@ -10,6 +10,8 @@ const errorStatuses = {
     USER_ALREADY_EXISTS: 409
 };
 
+// On traduit les erreurs connues en codes HTTP (400, 401, 409).
+// Pour une erreur imprévue, on la log et on renvoie un message simple au client.
 function respondToError(error, res, fallbackMessage) {
     const status = error instanceof ApplicationError && errorStatuses[error.code];
 
@@ -21,11 +23,13 @@ function respondToError(error, res, fallbackMessage) {
     return res.status(500).json({ error: fallbackMessage });
 }
 
+// On passe le service au contrôleur pour qu'il ait pas besoin de toucher à la BDD.
 export function createUserController(userService) {
     return {
+        // On prend les infos du body, ou de l'URL pour les anciens appels, puis on appelle le service.
+        // Le contrôleur s'occupe ensuite de renvoyer l'utilisateur créé avec le statut 201.
         create(req, res) {
             try {
-                // Accepte un corps JSON/formulaire et les anciens paramètres de requête.
                 const user = userService.create(req.body ?? req.query);
                 return res.status(201).json(user);
             } catch (error) {
@@ -33,6 +37,8 @@ export function createUserController(userService) {
             }
         },
 
+        // Le service vérifie le compte et donne le token. Ici on le met dans le cookie.
+        // httpOnly empêche le JS du navigateur de lire ce cookie.
         login(req, res) {
             try {
                 const { user, token } = userService.login(req.body);
@@ -50,6 +56,7 @@ export function createUserController(userService) {
             }
         },
 
+        // Le middleware a déjà vérifié la connexion et mis les infos dans res.locals.user.
         me(req, res) {
             try {
                 const user = userService.getCurrentUser(res.locals.user);
