@@ -36,6 +36,11 @@ npm start
 - `POST /users/login` : connexion avec `username` et `password` dans le corps ; le JWT est placé dans le cookie `accessToken`.
 - `GET /users/me` : retourne les données du JWT vérifié, avec le cookie de connexion.
 
+### Mots de passe
+
+On utilise Argon2id côté serveur, recommandé aujourd'hui pour stocker les mots de passe plutôt qu'un SHA-256 seul comme vu en cours ([recommandations OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)). Les paramètres utilisés sont 19 Mio de mémoire, 2 passages et un parallélisme de 1, le minimum recommandé par OWASP. La bibliothèque génère un sel aléatoire et stocke le sel et les paramètres avec le hash dans `password_hash`.
+
+À la connexion, `argon2.verify` vérifie la valeur reçue avec le hash enregistré. 
 
 ### Tests
 

@@ -7,16 +7,19 @@ import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import argon2 from "argon2";
 import Database from "better-sqlite3";
 import jwt from "jsonwebtoken";
 import { createApp } from "../app.js";
 
 const secret = "test-only-secret-for-user-regressions";
 const schema = readFileSync(new URL("../database/schema.sql", import.meta.url), "utf8");
+// On reproduit le SHA-256 hex envoyé par le navigateur, sans envoyer le mot de passe en clair.
+const clientPassword = "mot-de-passe-test";
 const credentials = {
     username: "alice",
     email: "alice@example.test",
-    password: "client-password-hash"
+    password: createHash("sha256").update(clientPassword).digest("hex")
 };
 
 // Prépare une base et un serveur pour un test. Le port 0 laisse le système choisir
@@ -62,6 +65,7 @@ function assertPublicUser(user, expected) {
 }
 
 // Après une création, on compare la réponse avec ce qui a vraiment été enregistré.
+// Argon2id est recommandé pour stocker les mots de passe ; le SHA-256 vu en cours reste l'entrée client.
 // Le hash doit rester en base et l'identifiant doit être un UUID généré par le serveur.
 test("creating a user stores a UUID and hashed password, and returns only public data", async t => {
     const { database, request } = await fixture(t);
@@ -70,13 +74,38 @@ test("creating a user stores a UUID and hashed password, and returns only public
     assert.equal(response.status, 201);
     assertPublicUser(data, credentials);
     const stored = database.prepare("SELECT * FROM user WHERE id = ?").get(data.id);
-    assert.deepEqual(stored, {
-        id: data.id,
-        username: credentials.username,
-        email: credentials.email,
-        password_hash: createHash("sha256").update(credentials.password).digest("base64")
+    const { password_hash: passwordHash, ...publicFields } = stored;
+    assert.deepEqual(publicFields, data);
+    assert.match(passwordHash, /^\$argon2id\$/);
+    assert.equal(await argon2.verify(passwordHash, credentials.password), true);
+    assert.notEqual(passwordHash, credentials.password);
+});
+
+// Deux comptes avec la même entrée client doivent recevoir des sels différents.
+// Les deux hashes doivent quand même permettre de vérifier cette entrée.
+test("identical client password hashes receive different Argon2id salts", async t => {
+    const { database, request } = await fixture(t);
+    const first = await request("/users/add", {
+        method: "POST",
+        body: { ...credentials, username: "first-user", email: null }
     });
-    assert.notEqual(stored.password_hash, credentials.password);
+    const second = await request("/users/add", {
+        method: "POST",
+        body: { ...credentials, username: "second-user", email: null }
+    });
+    assert.equal(first.response.status, 201);
+    assert.equal(second.response.status, 201);
+
+    const readHash = database.prepare("SELECT password_hash FROM user WHERE id = ?");
+    const firstHash = readHash.get(first.data.id).password_hash;
+    const secondHash = readHash.get(second.data.id).password_hash;
+    assert.match(firstHash, /^\$argon2id\$/);
+    assert.match(secondHash, /^\$argon2id\$/);
+    // Dans le format Argon2, le sel est le champ situé juste après les paramètres.
+    assert.notEqual(firstHash.split("$")[4], secondHash.split("$")[4]);
+    assert.notEqual(firstHash, secondHash);
+    assert.equal(await argon2.verify(firstHash, credentials.password), true);
+    assert.equal(await argon2.verify(secondHash, credentials.password), true);
 });
 
 // L'ancien appel avec les champs dans l'URL doit continuer à créer un utilisateur.
@@ -107,14 +136,14 @@ test("form-encoded creation and optional emails remain supported", async t => {
     const { baseUrl, request, database } = await fixture(t);
     const response = await fetch(`${baseUrl}/users/add`, {
         method: "POST",
-        body: new URLSearchParams({ username: "form-user", password: "form-password" })
+        body: new URLSearchParams({ username: "form-user", password: credentials.password })
     });
     assert.equal(response.status, 201);
     assertPublicUser(await response.json(), { username: "form-user" });
 
     const second = await request("/users/add", {
         method: "POST",
-        body: { username: "another-user", email: null, password: "another-password" }
+        body: { username: "another-user", email: null, password: credentials.password }
     });
     assert.equal(second.response.status, 201);
     assertPublicUser(second.data, { username: "another-user" });
@@ -150,12 +179,12 @@ test("invalid creation data returns 400 without inserting users", async t => {
     const invalidBodies = [
         {},
         { username: "alice" },
-        { password: "password" },
-        { username: "", password: "password" },
+        { password: credentials.password },
+        { username: "", password: credentials.password },
         { username: "alice", password: "" },
-        { username: 42, password: "password" },
+        { username: 42, password: credentials.password },
         { username: "alice", password: ["password"] },
-        { username: "alice", password: "password", email: { address: "alice@example.test" } }
+        { username: "alice", password: credentials.password, email: { address: "alice@example.test" } }
     ];
 
     for (const body of invalidBodies) {
@@ -165,6 +194,52 @@ test("invalid creation data returns 400 without inserting users", async t => {
         assert.equal(typeof data.error, "string");
     }
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM user").get().count, 0);
+});
+
+// Le compte a été créé avec le SHA-256 client : envoyer le mot de passe en clair
+// ou une version différente de ce hash ne doit donc pas permettre de se connecter.
+test("login rejects plaintext and altered versions of the registered client password hash", async t => {
+    const { database, request } = await fixture(t);
+    const created = await request("/users/add", { method: "POST", body: credentials });
+    assert.equal(created.response.status, 201);
+    const initialHash = database.prepare("SELECT password_hash FROM user WHERE id = ?").get(created.data.id).password_hash;
+    const invalidPasswords = [
+        clientPassword,
+        credentials.password.slice(1),
+        `${credentials.password}0`,
+        "g".repeat(64)
+    ];
+
+    for (const password of invalidPasswords) {
+        const login = await request("/users/login", {
+            method: "POST",
+            body: { username: credentials.username, password }
+        });
+        assert.equal(login.response.status, 401);
+        assert.deepEqual(login.data, { error: "Nom d'utilisateur ou mot de passe incorrect." });
+        assert.equal(login.response.headers.get("set-cookie"), null);
+    }
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM user").get().count, 1);
+    assert.equal(database.prepare("SELECT password_hash FROM user WHERE id = ?").get(created.data.id).password_hash, initialHash);
+});
+
+// L'API accepte aussi une chaîne brute non vide : elle n'impose pas le format SHA-256.
+// Pour se connecter, il faut simplement renvoyer la même valeur que lors de l'inscription.
+test("opaque non-empty password strings remain supported for creation and login", async t => {
+    const { database, request } = await fixture(t);
+    const rawCredentials = { username: "raw-password-user", password: clientPassword };
+    const created = await request("/users/add", { method: "POST", body: rawCredentials });
+    assert.equal(created.response.status, 201);
+    assertPublicUser(created.data, rawCredentials);
+
+    const storedHash = database.prepare("SELECT password_hash FROM user WHERE id = ?").get(created.data.id).password_hash;
+    assert.match(storedHash, /^\$argon2id\$/);
+    assert.equal(await argon2.verify(storedHash, rawCredentials.password), true);
+
+    const login = await request("/users/login", { method: "POST", body: rawCredentials });
+    assert.equal(login.response.status, 200);
+    assert.deepEqual(login.data, { user: created.data });
+    assert.match(login.response.headers.get("set-cookie"), /^accessToken=/);
 });
 
 // On crée un compte, on se connecte, puis on réutilise le cookie pour appeler /me.
@@ -223,7 +298,7 @@ test("incorrect login credentials return 401 without a session cookie", async t 
     await request("/users/add", { method: "POST", body: credentials });
 
     for (const body of [
-        { ...credentials, password: "incorrect-password" },
+        { ...credentials, password: createHash("sha256").update("incorrect-password").digest("hex") },
         { ...credentials, username: "unknown-user" }
     ]) {
         const { response, data } = await request("/users/login", { method: "POST", body });
@@ -239,8 +314,8 @@ test("missing and incorrectly typed login credentials return 400", async t => {
     for (const body of [
         {},
         { username: "alice" },
-        { password: "password" },
-        { username: 42, password: "password" },
+        { password: credentials.password },
+        { username: 42, password: credentials.password },
         { username: "alice", password: { value: "password" } }
     ]) {
         const { response, data } = await request("/users/login", { method: "POST", body });
@@ -288,6 +363,7 @@ test("SQLite failures are controlled JSON errors without storage or password det
     assert.equal(login.response.status, 500);
     assert.deepEqual(Object.keys(login.data), ["error"]);
     assert.equal(typeof login.data.error, "string");
-    assert.doesNotMatch(JSON.stringify(login.data), /SQLITE|password_hash|client-password-hash|database connection/i);
+    assert.doesNotMatch(JSON.stringify(login.data), /SQLITE|password_hash|argon2id|database connection/i);
+    assert.equal(JSON.stringify(login.data).includes(credentials.password), false);
     assert.equal(login.response.headers.get("set-cookie"), null);
 });

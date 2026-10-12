@@ -1,4 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { ApplicationError } from "../errors/applicationError.js";
 
@@ -14,9 +15,16 @@ function validateCredentials(username, password) {
     }
 }
 
-// On applique SHA-256 à la valeur reçue dans password.
+// On utilise Argon2id, recommandé aujourd'hui pour stocker les mdp (OWASP).
+// Le SHA-256 vu en cours est trop rapide pour ça. La lib ajoute un sel aléatoire par hash.
+// Le front envoie un sha-256 du mot de passe, mais on le re-hash côté serveur pour la BDD avec Argon2id.
 function hashPassword(password) {
-    return createHash("sha256").update(password).digest("base64");
+    return argon2.hash(password, {
+        type: argon2.argon2id,
+        memoryCost: 19 * 1024,
+        timeCost: 2,
+        parallelism: 1
+    });
 }
 
 // Le front doit pas récupérer le hash du mdp, donc on garde juste ces 3 champs.
@@ -32,7 +40,7 @@ export class UserService {
 
     // On vérifie les infos reçues, puis on prépare l'id et le hash avant de sauvegarder.
     // L'email est facultatif : s'il est absent, on met null en BDD.
-    create(data) {
+    async create(data) {
         const { username, email, password } = data ?? {};
         validateCredentials(username, password);
 
@@ -44,21 +52,21 @@ export class UserService {
             id: randomUUID(),
             username,
             email: email ?? null,
-            passwordHash: hashPassword(password)
+            passwordHash: await hashPassword(password)
         });
 
         return toPublicUser(user);
     }
 
-    // On récupère le compte et on compare le hash avec celui du mdp envoyé.
+    // On récupère le compte et la lib vérifie le mdp avec le sel contenu dans le hash stocké.
     // Si c'est bon, on crée un JWT valable 1 jour et on renvoie les infos publiques.
-    login(data) {
+    async login(data) {
         const { username, password } = data ?? {};
         validateCredentials(username, password);
 
         const user = this.userRepository.findByUsername(username);
 
-        if (!user || user.passwordHash !== hashPassword(password)) {
+        if (!user || !await argon2.verify(user.passwordHash, password)) {
             throw new ApplicationError(
                 "INVALID_CREDENTIALS",
                 "Nom d'utilisateur ou mot de passe incorrect."

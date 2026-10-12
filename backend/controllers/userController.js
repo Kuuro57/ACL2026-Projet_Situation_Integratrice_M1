@@ -28,9 +28,9 @@ export function createUserController(userService) {
     return {
         // On prend les infos du body, ou de l'URL pour les anciens appels, puis on appelle le service.
         // Le contrôleur s'occupe ensuite de renvoyer l'utilisateur créé avec le statut 201.
-        create(req, res) {
+        async create(req, res) {
             try {
-                const user = userService.create(req.body ?? req.query);
+                const user = await userService.create(req.body ?? req.query);
                 return res.status(201).json(user);
             } catch (error) {
                 return respondToError(error, res, "Erreur lors de la création de l'utilisateur.");
@@ -39,9 +39,9 @@ export function createUserController(userService) {
 
         // Le service vérifie le compte et donne le token. Ici on le met dans le cookie.
         // httpOnly empêche le JS du navigateur de lire ce cookie.
-        login(req, res) {
+        async login(req, res) {
             try {
-                const { user, token } = userService.login(req.body);
+                const { user, token } = await userService.login(req.body);
 
                 res.cookie("accessToken", token, {
                     httpOnly: true,
