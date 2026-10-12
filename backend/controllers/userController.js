@@ -1,44 +1,62 @@
-import "express";
-import { randomUUID } from "node:crypto";
-import crypto from "crypto"
-import db from "../database/db.js";
+import { ApplicationError } from "../errors/applicationError.js";
 
-export const UserController = {
+const errorStatuses = {
+    INVALID_USER_INPUT: 400,
+    INVALID_CREDENTIALS: 401,
+    AUTHENTICATION_REQUIRED: 401,
+    INVALID_TOKEN: 401,
+    USERNAME_ALREADY_EXISTS: 409,
+    EMAIL_ALREADY_EXISTS: 409,
+    USER_ALREADY_EXISTS: 409
+};
 
-    /**
-     * Ajoute un nouvel utilisateur en BD
-     * @param {Request} req
-     * @param {Response} res
-     * @returns Les données de l'utilisateur créé (id, username, email) avec le statut 201
-     */
-    async create(req, res) {
-        try {
-            const { username, email, password: hashedPassword } = req.query ?? {};
-            const id = randomUUID();
-            const doubleHashedPassword = crypto.createHash('sha256').update(hashedPassword).digest('base64');
+function respondToError(error, res, fallbackMessage) {
+    const status = error instanceof ApplicationError && errorStatuses[error.code];
 
-            db.prepare("INSERT INTO user (id, username, email, password_hash) VALUES (?, ?, ?, ?)")
-                .run(id, username, email ?? null, doubleHashedPassword);
-
-            return res.status(201).json({ id, username, email: email ?? null });
-        } catch (err) {
-            if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
-                let attributeDuplicate = err.message.split(" ");
-                attributeDuplicate = attributeDuplicate[attributeDuplicate.length - 1];
-                
-                let message = "Impossible d'ajouter l'utilisateur (erreur de contrainte UNIQUE).";
-                if (attributeDuplicate.includes("username")) {
-                    message = "Ce nom d'utilisateur est déjà utilisé.";
-                } else if (attributeDuplicate.includes("email")) {
-                    message = "Cet email est déjà associée à un compte.";
-                }
-
-                return res.status(409).json({ error: message });
-            }
-
-            console.error(err);
-            return res.status(500).json({ error: "Erreur lors de la création de l'utilisateur." });
-        }
+    if (status) {
+        return res.status(status).json({ error: error.message });
     }
 
+    console.error(error);
+    return res.status(500).json({ error: fallbackMessage });
+}
+
+export function createUserController(userService) {
+    return {
+        create(req, res) {
+            try {
+                // Accepte un corps JSON/formulaire et les anciens paramètres de requête.
+                const user = userService.create(req.body ?? req.query);
+                return res.status(201).json(user);
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de la création de l'utilisateur.");
+            }
+        },
+
+        login(req, res) {
+            try {
+                const { user, token } = userService.login(req.body);
+
+                res.cookie("accessToken", token, {
+                    httpOnly: true,
+                    sameSite: "lax",
+                    secure: process.env.NODE_ENV === "production",
+                    maxAge: 24 * 60 * 60 * 1000
+                });
+
+                return res.status(200).json({ user });
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de la connexion.");
+            }
+        },
+
+        me(req, res) {
+            try {
+                const user = userService.getCurrentUser(res.locals.user);
+                return res.status(200).json({ user });
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de la récupération de l'utilisateur.");
+            }
+        }
+    };
 }
