@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes requête SQL
 app
-    .post('/users', UserController.create);
+    .post('/users/add', UserController.create);
 
 
 
