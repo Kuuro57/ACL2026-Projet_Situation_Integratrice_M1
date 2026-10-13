@@ -3,8 +3,13 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { ApplicationError } from "../errors/applicationError.js";
 
-// On fait les mêmes vérifs pour la création et la connexion.
-// Ça évite aussi de planter dans le hash si on reçoit un nombre ou un objet.
+/**
+ * Vérifie le nom d'utilisateur et le mot de passe reçus
+ * @param {string} username Nom d'utilisateur reçu
+ * @param {string} password Mot de passe reçu
+ * @returns {void}
+ * @throws {ApplicationError} INVALID_USER_INPUT si l'un des deux est absent ou n'est pas une chaîne
+ */
 function validateCredentials(username, password) {
     if (typeof username !== "string" || !username.trim()
         || typeof password !== "string" || !password) {
@@ -15,9 +20,13 @@ function validateCredentials(username, password) {
     }
 }
 
-// On utilise Argon2id, recommandé aujourd'hui pour stocker les mdp (OWASP).
-// Le SHA-256 vu en cours est trop rapide pour ça. La lib ajoute un sel aléatoire par hash.
-// Le front envoie un sha-256 du mot de passe, mais on le re-hash côté serveur pour la BDD avec Argon2id.
+/**
+ * Hash un mot de passe avec Argon2id, recommandé aujourd'hui pour stocker les mdp (OWASP).
+ * Le SHA-256 vu en cours est trop rapide pour ça. La lib ajoute un sel aléatoire par hash.
+ * Le front envoie un SHA-256 du mot de passe, mais on le re-hash côté serveur pour la BDD avec Argon2id.
+ * @param {string} password Mot de passe à hasher
+ * @returns {Promise<string>} Hash Argon2id (contient le sel et les paramètres)
+ */
 function hashPassword(password) {
     return argon2.hash(password, {
         type: argon2.argon2id,
@@ -27,19 +36,42 @@ function hashPassword(password) {
     });
 }
 
-// Le front doit pas récupérer le hash du mdp, donc on garde juste ces 3 champs.
+/**
+ * Garde uniquement les champs publics d'un utilisateur.
+ * (Le front ne doit pas récupérer le hash du mdp, donc on garde juste ces 3 champs)
+ * @param {{ id: string, username: string, email: ?string }} user Utilisateur complet
+ * @returns {{ id: string, username: string, email: ?string }} Utilisateur public
+ */
 function toPublicUser({ id, username, email }) {
     return { id, username, email };
 }
 
+
+
+
+
+/**
+ * Logique métier des utilisateurs
+ */
 export class UserService {
+    
+    /**
+     * @param {import("../repositories/userRepository.js").UserRepository} userRepository Repository utilisateur
+     * @param {Object} options Options du service
+     * @param {string} options.secret Clé secrète utilisée pour signer et vérifier les JWT
+     */
     constructor(userRepository, { secret }) {
         this.userRepository = userRepository;
         this.secret = secret;
     }
 
-    // On vérifie les infos reçues, puis on prépare l'id et le hash avant de sauvegarder.
-    // L'email est facultatif : s'il est absent, on met null en BDD.
+    /**
+     * Crée un utilisateur
+     * @param {{ username: string, password: string, email?: ?string }} data Infos de l'utilisateur
+     * @returns {Promise<{ id: string, username: string, email: ?string }>} Utilisateur public créé
+     * @throws {ApplicationError} INVALID_USER_INPUT si les infos sont invalides,
+     * ou une erreur de doublon remontée par le repository
+     */
     async create(data) {
         const { username, email, password } = data ?? {};
         validateCredentials(username, password);
@@ -58,8 +90,14 @@ export class UserService {
         return toPublicUser(user);
     }
 
-    // On récupère le compte et la lib vérifie le mdp avec le sel contenu dans le hash stocké.
-    // Si c'est bon, on crée un JWT valable 1 jour et on renvoie les infos publiques.
+    /**
+     * Connecte un utilisateur
+     * @param {{ username: string, password: string }} data Identifiants de connexion
+     * @returns {Promise<{ user: { id: string, username: string, email: ?string }, token: string }>}
+     * Utilisateur public et JWT signé
+     * @throws {ApplicationError} INVALID_USER_INPUT si les infos sont invalides,
+     * INVALID_CREDENTIALS si le compte n'existe pas ou si le mot de passe est faux
+     */
     async login(data) {
         const { username, password } = data ?? {};
         validateCredentials(username, password);
@@ -82,8 +120,13 @@ export class UserService {
         return { user: toPublicUser(user), token };
     }
 
-    // Le middleware passe par ici pour vérifier la signature et la date du token.
-    // On distingue le cookie absent d'un token invalide ou expiré.
+    /**
+     * Vérifie un JWT d'accès
+     * @param {?string} token JWT récupéré dans le cookie
+     * @returns {{ id: string, username: string, iat: number, exp: number }} Contenu décodé du token
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED si le token est absent,
+     * INVALID_TOKEN s'il est invalide ou expiré
+     */
     verifyAccessToken(token) {
         if (!token) {
             throw new ApplicationError("AUTHENTICATION_REQUIRED", "Authentification requise.");
@@ -96,8 +139,12 @@ export class UserService {
         }
     }
 
-    // Pour /me, on reprend les infos du JWT déjà vérifié par le middleware.
-    // On garde la réponse actuelle, avec id, username, iat et exp.
+    /**
+     * Renvoie l'utilisateur connecté
+     * @param {?{ id: string, username: string, iat: number, exp: number }} authenticatedUser Contenu du JWT vérifié
+     * @returns {{ id: string, username: string, iat: number, exp: number }} Utilisateur connecté
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED si aucun utilisateur n'est authentifié
+     */
     getCurrentUser(authenticatedUser) {
         if (!authenticatedUser?.id) {
             throw new ApplicationError("AUTHENTICATION_REQUIRED", "Authentification requise.");

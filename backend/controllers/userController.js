@@ -10,8 +10,13 @@ const errorStatuses = {
     USER_ALREADY_EXISTS: 409
 };
 
-// On traduit les erreurs connues en codes HTTP (400, 401, 409).
-// Pour une erreur imprévue, on la log et on renvoie un message simple au client.
+/**
+ * Traduit les erreurs connues en codes HTTP (400, 401, 409)
+ * @param {Error} error Erreur levée
+ * @param {import("express").Response} res Réponse
+ * @param {string} fallbackMessage Message renvoyé au client si l'erreur est imprévue
+ * @returns {import("express").Response} Réponse JSON contenant le message d'erreur
+ */
 function respondToError(error, res, fallbackMessage) {
     const status = error instanceof ApplicationError && errorStatuses[error.code];
 
@@ -23,11 +28,21 @@ function respondToError(error, res, fallbackMessage) {
     return res.status(500).json({ error: fallbackMessage });
 }
 
-// On passe le service au contrôleur pour qu'il ait pas besoin de toucher à la BDD.
+/**
+ * Crée le contrôleur utilisateur
+ * On passe le service au contrôleur pour qu'il n'ait pas besoin de toucher à la BDD
+ * @param {import("../services/userService.js").UserService} userService Service utilisateur
+ * @returns {*}
+ * Les handlers des routes utilisateur
+ */
 export function createUserController(userService) {
     return {
-        // On prend les infos du body, ou de l'URL pour les anciens appels, puis on appelle le service.
-        // Le contrôleur s'occupe ensuite de renvoyer l'utilisateur créé avec le statut 201.
+        /**
+         * Crée un utilisateur
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {Promise<import("express").Response>} Utilisateur créé (201) ou erreur
+         */
         async create(req, res) {
             try {
                 const user = await userService.create(req.body ?? req.query);
@@ -37,8 +52,12 @@ export function createUserController(userService) {
             }
         },
 
-        // Le service vérifie le compte et donne le token. Ici on le met dans le cookie.
-        // httpOnly empêche le JS du navigateur de lire ce cookie.
+        /**
+         * Connecte un utilisateur
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {Promise<import("express").Response>} Utilisateur connecté (200) ou erreur
+         */
         async login(req, res) {
             try {
                 const { user, token } = await userService.login(req.body);
@@ -56,7 +75,12 @@ export function createUserController(userService) {
             }
         },
 
-        // Le middleware a déjà vérifié la connexion et mis les infos dans res.locals.user.
+        /**
+         * Renvoie l'utilisateur actuellement connecté
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Utilisateur connecté (200) ou erreur
+         */
         me(req, res) {
             try {
                 const user = userService.getCurrentUser(res.locals.user);
