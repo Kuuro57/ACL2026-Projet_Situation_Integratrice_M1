@@ -60,7 +60,7 @@ export function createUserController(userService) {
          */
         async login(req, res) {
             try {
-                const { user, token } = await userService.login(req.body);
+                const { user, token } = await userService.login(req.body ?? req.query);
 
                 res.cookie("accessToken", token, {
                     httpOnly: true,
