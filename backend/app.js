@@ -10,6 +10,10 @@ import { EventDAO } from "./dao/eventDao.js";
 import { EventRepository } from "./repositories/eventRepository.js";
 import { EventService } from "./services/eventService.js";
 import { createEventController } from "./controllers/eventController.js";
+import { CalendarDAO } from "./dao/calendarDao.js";
+import { CalendarRepository } from "./repositories/calendarRepository.js";
+import { CalendarService } from "./services/calendarService.js";
+import { createCalendarController } from "./controllers/calendarController.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,6 +40,10 @@ export function createApp({ database, secret }) {
   const eventRepository = new EventRepository(eventDao);
   const eventService = new EventService(eventRepository);
   const eventController = createEventController(eventService);
+  const calendarDao = new CalendarDAO(database);
+  const calendarRepository = new CalendarRepository(calendarDao);
+  const calendarService = new CalendarService(calendarRepository);
+  const calendarController = createCalendarController(calendarService);
 
   const app = express();
   app.use(express.json());
@@ -62,6 +70,10 @@ export function createApp({ database, secret }) {
     .post("/users/add", userController.create)
     .post("/users/login", userController.login)
     .get("/users/me", authenticate, userController.me);
+
+  app
+    .post("/calendars", authenticate, calendarController.create)
+    .get("/calendars/:calendarId/week", authenticate, calendarController.getWeek);
 
   app
     .post("/calendars/:calendarId/events", authenticate, eventController.create)
