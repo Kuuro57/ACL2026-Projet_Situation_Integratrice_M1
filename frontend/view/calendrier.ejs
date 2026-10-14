@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/assets/calendrier.css" />
+  </head>
+  <body>
+    <main id="calendar" data-calendar-id="<%= calendarId %>">
+      <header class="calendar-toolbar">
+        <h1 id="week-label"></h1>
+
+        <nav class="week-navigation" aria-label="Changer de semaine">
+          <button type="button" id="previous-week" aria-label="Semaine précédente">&lt;</button>
+          <button type="button" id="current-week">Aujourd'hui</button>
+          <button type="button" id="next-week" aria-label="Semaine suivante">&gt;</button>
+        </nav>
+      </header>
+
+      <p id="calendar-message" role="alert" aria-live="polite" hidden></p>
+
+      <div class="week-scroll">
+        <div id="week-grid" class="week-grid"></div>
+      </div>
+    </main>
+
+    <script src="/assets/calendrier.js" defer></script>
+  </body>
+</html>
