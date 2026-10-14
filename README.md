@@ -75,6 +75,8 @@ Erreurs : `400` pour un nom, un identifiant, une date ou un fuseau invalide, `40
 
 La page `/calendrier/:calendarId` affiche la semaine en cours sur toute la journée (00h00 à 23h59). La grille défile et s'ouvre à 7h, les flèches changent de semaine.
 
+**Temporaire :** en attendant que la connexion soit branchée au front, `GET /calendars/:calendarId/week` est publique : pas de cookie demandé, pas de vérification des droits (seul le `404` reste). Voir le `TODO permissions` dans `calendarService.getWeek`.
+
 ### Routes rendez-vous
 
 Ces routes utilisent le cookie `accessToken` obtenu à la connexion. Le calendrier doit déjà exister et l'utilisateur doit y être `proprietaire` ou `editeur` dans `calendarUser` ; un `visiteur` ne peut pas écrire. Les données viennent du corps JSON de la requête.

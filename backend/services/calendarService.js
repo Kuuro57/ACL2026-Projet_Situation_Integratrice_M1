@@ -133,30 +133,28 @@ export class CalendarService {
 
     /**
      * Renvoie l'agenda, les bornes de la semaine et les rendez-vous qui la chevauchent
-     * @param {string} userId Identifiant de l'utilisateur connecté
+     * @param {?string} userId Identifiant de l'utilisateur connecté (absent tant que la route est publique)
      * @param {string|number} calendarId Identifiant de l'agenda
      * @param {Object} [query={}] Semaine demandée
      * @param {string} [query.date] Un jour de la semaine au format YYYY-MM-DD (aujourd'hui par défaut)
      * @param {string} [query.timeZone] Fuseau IANA utilisé pour découper la semaine (Europe/Paris par défaut)
-     * @returns {{ calendar: { id: number, name: string, permission: string },
+     * @returns {{ calendar: { id: number, name: string, permission: ?string },
      * week: { start: string, end: string, timeZone: string }, events: Object[] }}
      * Agenda, bornes de la semaine et rendez-vous triés par date de début
-     * @throws {ApplicationError} AUTHENTICATION_REQUIRED, INVALID_CALENDAR_INPUT,
-     * CALENDAR_NOT_FOUND si l'agenda n'existe pas ou CALENDAR_ACCESS_DENIED si l'utilisateur n'en est pas membre
+     * @throws {ApplicationError} INVALID_CALENDAR_INPUT, ou CALENDAR_NOT_FOUND si l'agenda n'existe pas
      */
     getWeek(userId, calendarId, query = {}) {
-        this.requireUser(userId);
         const id = parseCalendarId(calendarId);
         const week = getWeekBounds(query);
 
         return this.calendarRepository.transaction(() => {
-            this.requireExistingUser(userId);
-            const calendar = this.calendarRepository.findAccess(id, userId);
+            // TODO permissions : pour l'instant tout le monde peut voir la semaine, sans être connecté.
+            // Quand la connexion sera branchée au front, remettre requireUser et requireExistingUser,
+            // refuser avec CALENDAR_ACCESS_DENIED si readPermissions n'a pas calendar.permission,
+            // et remettre authenticate sur la route dans app.js.
+            const calendar = this.calendarRepository.findAccess(id, userId ?? null);
             if (!calendar) {
                 throw new ApplicationError("CALENDAR_NOT_FOUND", "Calendrier introuvable.");
-            }
-            if (!readPermissions.has(calendar.permission)) {
-                throw new ApplicationError("CALENDAR_ACCESS_DENIED", "Vous ne pouvez pas consulter ce calendrier.");
             }
 
             return {
