@@ -2,6 +2,16 @@ const form = document.querySelector("#creation-compte-form");
 const message = document.querySelector("#form-message");
 const submitButton = form.querySelector('button[type="submit"]');
 
+async function toSha256Hex(value) {
+    if (!globalThis.crypto?.subtle) return value;
+
+    const encoded = new TextEncoder().encode(value);
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", encoded);
+    return Array.from(new Uint8Array(digest))
+        .map(byte => byte.toString(16).padStart(2, "0"))
+        .join("");
+}
+
 function showMessage(text, isError = true) {
     message.textContent = text;
     message.dataset.type = isError ? "error" : "success";
@@ -31,6 +41,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     try {
+        const passwordHash = await toSha256Hex(password);
         const response = await fetch("/users/add", {
             method: "POST",
             headers: {
@@ -40,7 +51,7 @@ form.addEventListener("submit", async (event) => {
             body: JSON.stringify({
                 username,
                 email: email || null,
-                password
+                password: passwordHash
             })
         });
 
