@@ -6,6 +6,10 @@ import { UserRepository } from "./repositories/userRepository.js";
 import { UserService } from "./services/userService.js";
 import { createUserController } from "./controllers/userController.js";
 import { createAuthenticate } from "./middlewares/authenticate.js";
+import { EventDAO } from "./dao/eventDao.js";
+import { EventRepository } from "./repositories/eventRepository.js";
+import { EventService } from "./services/eventService.js";
+import { createEventController } from "./controllers/eventController.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +32,10 @@ export function createApp({ database, secret }) {
   const userService = new UserService(userRepository, { secret });
   const userController = createUserController(userService);
   const authenticate = createAuthenticate(userService);
+  const eventDao = new EventDAO(database);
+  const eventRepository = new EventRepository(eventDao);
+  const eventService = new EventService(eventRepository);
+  const eventController = createEventController(eventService);
 
   const app = express();
   app.use(express.json());
@@ -55,12 +63,24 @@ export function createApp({ database, secret }) {
     .post("/users/login", userController.login)
     .get("/users/me", authenticate, userController.me);
 
+  app
+    .post("/calendars/:calendarId/events", authenticate, eventController.create)
+    .patch("/calendars/:calendarId/events/:eventId", authenticate, eventController.update)
+    .delete("/calendars/:calendarId/events/:eventId", authenticate, eventController.delete);
+
   app.use((req, res, next) => {
     next(createError(404));
   });
 
+  // Un gestionnaire pour envoyer les erreurs en JSON
   app.use((err, req, res, next) => {
-    res.status(err.status || 500).send(`<h1>${err.message}</h1>`);
+    if (res.headersSent) return next(err);
+
+    const status = err.status || 500;
+    const message = status === 400 ? "Requête invalide." : err.message;
+    return res.status(status).json({
+      error: status >= 500 ? "Erreur interne du serveur." : message,
+    });
   });
 
   return app;
