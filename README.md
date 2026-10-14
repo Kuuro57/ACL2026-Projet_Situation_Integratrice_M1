@@ -36,6 +36,43 @@ npm start
 - `POST /users/login` : connexion avec `username` et `password` dans le corps ; le JWT est placé dans le cookie `accessToken`.
 - `GET /users/me` : retourne les données du JWT vérifié, avec le cookie de connexion.
 
+### Routes calendrier
+
+Ces routes utilisent aussi le cookie `accessToken`.
+
+| Méthode | Route | Réponse |
+| --- | --- | --- |
+| `POST` | `/calendars` | `201` avec le calendrier créé. |
+| `GET` | `/calendars/:calendarId/week` | `200` avec la semaine demandée et ses rendez-vous. |
+
+`POST /calendars` attend un corps JSON `{"name":"Perso"}` (texte non vide, aucun autre champ). L'utilisateur connecté devient `proprietaire` du calendrier. La réponse contient `id`, `name` et `permission`.
+
+`GET /calendars/:calendarId/week` est accessible à tous les membres du calendrier, y compris les `visiteur`. Deux paramètres facultatifs choisissent la semaine :
+
+- `date` : un jour de la semaine voulue, au format `AAAA-MM-JJ` (aujourd'hui par défaut) ;
+- `timeZone` : le fuseau IANA dans lequel la semaine est découpée, par exemple `America/New_York` (`Europe/Paris` par défaut). Côté navigateur, il s'obtient avec `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+
+La semaine va du lundi 00:00 au lundi suivant 00:00, à l'heure locale du fuseau (calcul fait avec Luxon, qui gère les changements d'heure). Exemple : `GET /calendars/1/week?date=2026-10-14` renvoie
+
+```json
+{
+  "calendar": { "id": 1, "name": "Perso", "permission": "proprietaire" },
+  "week": {
+    "start": "2026-10-11T22:00:00.000Z",
+    "end": "2026-10-18T22:00:00.000Z",
+    "timeZone": "Europe/Paris"
+  },
+  "events": [
+    { "id": 4, "calendarId": 1, "start": "2026-10-14T10:00:00.000Z", "duration": 60,
+      "title": "Rendez-vous de projet", "description": null, "reminderTime": null }
+  ]
+}
+```
+
+`week.start` et `week.end` sont les bornes de la semaine en UTC (`end` exclu). `events` contient les rendez-vous qui chevauchent cette période, y compris ceux commencés avant le lundi, triés par date de début.
+
+Erreurs : `400` pour un nom, un identifiant, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
+
 ### Routes rendez-vous
 
 Ces routes utilisent le cookie `accessToken` obtenu à la connexion. Le calendrier doit déjà exister et l'utilisateur doit y être `proprietaire` ou `editeur` dans `calendarUser` ; un `visiteur` ne peut pas écrire. Les données viennent du corps JSON de la requête.
