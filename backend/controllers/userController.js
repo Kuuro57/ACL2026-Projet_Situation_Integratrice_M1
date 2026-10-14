@@ -63,7 +63,7 @@ export function createUserController(userService) {
                 const { user, token } = await userService.login(req.body ?? req.query);
 
                 res.cookie("accessToken", token, {
-                    httpOnly: true,
+                    httpOnly: false,
                     sameSite: "lax",
                     secure: process.env.NODE_ENV === "production",
                     maxAge: 24 * 60 * 60 * 1000

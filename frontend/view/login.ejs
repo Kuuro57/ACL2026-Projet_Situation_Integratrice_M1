@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/assets/creation-compte.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Se connecter</h1>
+
+      <form
+        id="login-form"
+        novalidate
+      >
+        <div class="form-field">
+          <label for="username">Nom d'utilisateur</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="password">Mot de passe</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            required
+          />
+        </div>
+
+        <p id="form-message" role="alert" aria-live="polite"></p>
+        <button type="submit">Connexion</button>
+      </form>
+    </main>
+
+    <script src="/assets/login.js" defer></script>
+  </body>
+</html>
