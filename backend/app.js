@@ -64,6 +64,11 @@ export function createApp({ database, secret }) {
       title: "Créer un compte",
     });
   });
+  app.get("/", (req, res) => {
+    res.render("login", {
+      title: "Se connecter",
+    });
+  });
 
   // Routes API
   app
