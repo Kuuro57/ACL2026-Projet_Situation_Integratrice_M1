@@ -73,6 +73,8 @@ La semaine va du lundi 00:00 au lundi suivant 00:00, à l'heure locale du fuseau
 
 Erreurs : `400` pour un nom, un identifiant, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
 
+La page `/calendrier/:calendarId` affiche la semaine en cours sur toute la journée (00h00 à 23h59). La grille défile et s'ouvre à 7h, les flèches changent de semaine.
+
 ### Routes rendez-vous
 
 Ces routes utilisent le cookie `accessToken` obtenu à la connexion. Le calendrier doit déjà exister et l'utilisateur doit y être `proprietaire` ou `editeur` dans `calendarUser` ; un `visiteur` ne peut pas écrire. Les données viennent du corps JSON de la requête.
