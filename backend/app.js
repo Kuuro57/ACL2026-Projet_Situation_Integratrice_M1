@@ -65,6 +65,13 @@ export function createApp({ database, secret }) {
     });
   });
 
+  app.get("/calendrier/:calendarId", (req, res) => {
+    res.render("calendrier", {
+      title: "Calendrier",
+      calendarId: req.params.calendarId,
+    });
+  });
+
   // Routes API
   app
     .post("/users/add", userController.create)
