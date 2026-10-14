@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// On ouvre le fichier à côté de ce module, peu importe d'où on lance node.
 const db = new Database(join(__dirname, "app.db"));
 
 // Activation des clés étrangères
@@ -17,6 +18,7 @@ const isInitialized = db
 
 if (!isInitialized) {
     const schema = readFileSync(join(__dirname, "schema.sql"), "utf-8");
+    // On crée tout d'un coup : si le SQL plante, la transaction annule les changements.
     db.transaction(() => db.exec(schema))();
     console.log("Base de données initialisée depuis schema.sql");
 }

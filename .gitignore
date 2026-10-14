@@ -27,3 +27,6 @@ replay_pid*
 node_modules/
 # Base de données SQLite locale
 backend/database/*.db
+
+# Variables d'environnement
+.env

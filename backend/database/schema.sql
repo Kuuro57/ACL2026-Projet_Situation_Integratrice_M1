@@ -90,15 +90,7 @@ CREATE TABLE calendar2Event (
   FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE
 );
 
-CREATE TABLE session (
-  token_hash TEXT PRIMARY KEY NOT NULL, -- Hash SHA-256 du jeton, jamais le jeton brut
-  user_id TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  last_seen_at TEXT NOT NULL,
-  revoked_at TEXT, -- NULL tant que la session n'a pas ete revoquee
-  FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-);
+-- table session plus utile avec JWT.
 
 INSERT INTO frequency (label) VALUES ('seconde'), ('minute'), ('heure'), ('jour'), ('semaine'), ('mois'), ('annee');
 
