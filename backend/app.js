@@ -5,6 +5,7 @@ import { UserDAO } from "./dao/userDao.js";
 import { UserRepository } from "./repositories/userRepository.js";
 import { UserService } from "./services/userService.js";
 import { createUserController } from "./controllers/userController.js";
+import { createPageController } from "./controllers/pageController.js";
 import { createAuthenticate } from "./middlewares/authenticate.js";
 import { EventDAO } from "./dao/eventDao.js";
 import { EventRepository } from "./repositories/eventRepository.js";
@@ -44,6 +45,7 @@ export function createApp({ database, secret }) {
   const calendarRepository = new CalendarRepository(calendarDao);
   const calendarService = new CalendarService(calendarRepository);
   const calendarController = createCalendarController(calendarService);
+  const pageController = createPageController(userService, calendarRepository);
 
   const app = express();
   app.use(express.json());
@@ -59,40 +61,11 @@ export function createApp({ database, secret }) {
   app.set("views", path.join(frontendDirectory, "view"));
   app.use("/assets", express.static(path.join(frontendDirectory, "public")));
 
-  app.get("/creation-compte", (req, res) => {
-    res.render("creation-compte", {
-      title: "Créer un compte",
-    });
-  });
-  app.get("/calendars/nouveau", (req, res) => {
-    try {
-      const user = userService.verifyAccessToken(req.cookies?.accessToken);
-      if (!calendarRepository.userExists(user.id)) return res.redirect("/");
-    } catch {
-      return res.redirect("/");
-    }
-
-    res.render("creation-agenda", {
-      title: "Créer un agenda",
-    });
-  });
-  app.get("/", (req, res) => {
-    res.render("menu", {
-      title: "Mes agendas",
-    });
-  });
-  app.get("/connexion", (req, res) => {
-    try {
-      const user = userService.verifyAccessToken(req.cookies?.accessToken);
-      if (calendarRepository.userExists(user.id)) return res.redirect("/");
-    } catch {
-      //une session absente ou expirée doit laisser afficher la page de connexion (logout ou expiration du token)
-    }
-
-    res.render("login", {
-      title: "Se connecter",
-    });
-  });
+  app
+    .get("/creation-compte", pageController.createAccount)
+    .get("/calendars/nouveau", pageController.createCalendar)
+    .get("/", pageController.menu)
+    .get("/connexion", pageController.login);
 
   // Routes API
   app
