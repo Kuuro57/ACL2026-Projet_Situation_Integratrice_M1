@@ -76,6 +76,15 @@ export class CalendarRepository {
     }
 
     /**
+     * Récupère les calendriers visibles par un utilisateur.
+     * @param {string} userId Identifiant de l'utilisateur
+     * @returns {{ id: number, name: string, permission: string }[]} Calendriers accessibles
+     */
+    findVisibleByUser(userId) {
+        return this.calendarDao.findVisibleByUser(userId).map(toCalendar);
+    }
+
+    /**
      * Récupère les rendez-vous du calendrier qui chevauchent la période
      * @param {number} calendarId Identifiant du calendrier
      * @param {string} start Début de la période (inclus), en ISO UTC

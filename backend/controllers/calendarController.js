@@ -27,7 +27,7 @@ function respondToError(error, res, fallbackMessage) {
 /**
  * Crée le contrôleur des calendriers
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
- * @returns {{ create: import("express").RequestHandler, getWeek: import("express").RequestHandler }}
+ * @returns {{ create: import("express").RequestHandler, list: import("express").RequestHandler, getWeek: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
 export function createCalendarController(calendarService) {
@@ -44,6 +44,21 @@ export function createCalendarController(calendarService) {
                 return res.status(201).json(calendar);
             } catch (error) {
                 return respondToError(error, res, "Erreur lors de la création du calendrier.");
+            }
+        },
+
+        /**
+         * Renvoie les calendriers visibles par l'utilisateur connecté
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Liste des calendriers (200) ou erreur
+         */
+        list(req, res) {
+            try {
+                const calendars = calendarService.listVisible(res.locals.user?.id);
+                return res.status(200).json(calendars);
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de la récupération des calendriers.");
             }
         },
 

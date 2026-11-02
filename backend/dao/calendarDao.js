@@ -50,6 +50,22 @@ export class CalendarDAO {
     }
 
     /**
+     * Récupère les calendriers visibles par un utilisateur, avec son niveau d'accès.
+     * @param {string} userId Identifiant de l'utilisateur
+     * @returns {{ id: number, name: string, permission: string }[]} Calendriers accessibles, triés par nom
+     */
+    findVisibleByUser(userId) {
+        return this.database.prepare(`
+            SELECT calendar.id, calendar.name, permissionType.label AS permission
+            FROM calendar
+            JOIN calendarUser ON calendarUser.calendar_id = calendar.id
+            JOIN permissionType ON permissionType.id = calendarUser.permission_id
+            WHERE calendarUser.user_id = ?
+            ORDER BY calendar.name COLLATE NOCASE, calendar.id
+        `).all(userId);
+    }
+
+    /**
      * Récupère les rendez-vous du calendrier qui chevauchent la période [start, end[.
      * Les dates sont toutes au format ISO UTC avec millisecondes, on peut donc les comparer comme du texte.
      * @param {number} calendarId Identifiant du calendrier

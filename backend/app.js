@@ -65,11 +65,30 @@ export function createApp({ database, secret }) {
     });
   });
   app.get("/calendars/nouveau", (req, res) => {
+    try {
+      const user = userService.verifyAccessToken(req.cookies?.accessToken);
+      if (!calendarRepository.userExists(user.id)) return res.redirect("/");
+    } catch {
+      return res.redirect("/");
+    }
+
     res.render("creation-agenda", {
       title: "Créer un agenda",
     });
   });
   app.get("/", (req, res) => {
+    res.render("menu", {
+      title: "Mes agendas",
+    });
+  });
+  app.get("/connexion", (req, res) => {
+    try {
+      const user = userService.verifyAccessToken(req.cookies?.accessToken);
+      if (calendarRepository.userExists(user.id)) return res.redirect("/");
+    } catch {
+      //une session absente ou expirée doit laisser afficher la page de connexion (logout ou expiration du token)
+    }
+
     res.render("login", {
       title: "Se connecter",
     });
@@ -79,10 +98,12 @@ export function createApp({ database, secret }) {
   app
     .post("/users/add", userController.create)
     .post("/users/login", userController.login)
+    .post("/users/logout", userController.logout)
     .get("/users/me", authenticate, userController.me);
 
   app
     .post("/calendars", authenticate, calendarController.create)
+    .get("/calendars", authenticate, calendarController.list)
     .get("/calendars/:calendarId/week", authenticate, calendarController.getWeek);
 
   app
