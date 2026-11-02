@@ -64,6 +64,11 @@ export function createApp({ database, secret }) {
       title: "Créer un compte",
     });
   });
+  app.get("/calendars/nouveau", (req, res) => {
+    res.render("creation-agenda", {
+      title: "Créer un agenda",
+    });
+  });
   app.get("/", (req, res) => {
     res.render("login", {
       title: "Se connecter",
