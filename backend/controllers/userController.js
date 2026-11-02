@@ -63,7 +63,8 @@ export function createUserController(userService) {
                 const { user, token } = await userService.login(req.body ?? req.query);
 
                 res.cookie("accessToken", token, {
-                    httpOnly: false,
+                    path: "/",
+                    httpOnly: true,
                     sameSite: "lax",
                     secure: process.env.NODE_ENV === "production",
                     maxAge: 24 * 60 * 60 * 1000
@@ -88,6 +89,21 @@ export function createUserController(userService) {
             } catch (error) {
                 return respondToError(error, res, "Erreur lors de la récupération de l'utilisateur.");
             }
+        },
+
+        /**
+         * Déconnecte l'utilisateur en supprimant son cookie d'accès.
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Confirmation (204)
+         */
+        logout(req, res) {
+            res.clearCookie("accessToken", {
+                path: "/",
+                sameSite: "lax",
+                secure: process.env.NODE_ENV === "production"
+            });
+            return res.status(204).end();
         }
     };
 }

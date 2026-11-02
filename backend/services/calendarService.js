@@ -132,6 +132,20 @@ export class CalendarService {
     }
 
     /**
+     * Renvoie les calendriers dont l'utilisateur connecté est membre.
+     * @param {string} userId Identifiant de l'utilisateur connecté
+     * @returns {{ id: number, name: string, permission: string }[]} Calendriers accessibles
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED si l'utilisateur est absent ou supprimé
+     */
+    listVisible(userId) {
+        this.requireUser(userId);
+        return this.calendarRepository.transaction(() => {
+            this.requireExistingUser(userId);
+            return this.calendarRepository.findVisibleByUser(userId);
+        });
+    }
+
+    /**
      * Renvoie l'agenda, les bornes de la semaine et les rendez-vous qui la chevauchent
      * @param {string} userId Identifiant de l'utilisateur connecté
      * @param {string|number} calendarId Identifiant de l'agenda
