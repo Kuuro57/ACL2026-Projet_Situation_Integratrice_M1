@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/assets/menu.css" />
+  </head>
+  <body class="page-menu">
+    <header class="app-header">
+      <a class="app-brand" href="/">Agenda</a>
+
+      <nav id="menu-navigation" class="tab-bar" aria-label="Navigation principale" hidden>
+        <a class="tab-link is-active" href="/" aria-current="page">Mes agendas</a>
+        <a class="tab-link" href="/calendars/nouveau">Ajouter un agenda</a>
+      </nav>
+
+      <div class="app-header-account">
+        <p id="menu-user" class="menu-user" hidden></p>
+        <button id="logout-button" class="button-secondary" type="button" hidden>Déconnexion</button>
+      </div>
+    </header>
+
+    <main class="main-menu">
+      <section id="signed-out-panel" class="welcome-panel" hidden>
+        <h1>Bienvenue</h1>
+        <div class="welcome-actions">
+          <a class="button-link" href="/creation-compte">Créer un compte</a>
+          <a class="button-link" href="/connexion">Se connecter</a>
+        </div>
+      </section>
+
+      <section id="signed-in-panel" hidden>
+        <h1>Mes agendas</h1>
+        <p id="menu-message" role="status" aria-live="polite"></p>
+        <ul id="calendar-list" class="calendar-list"></ul>
+      </section>
+
+      <p id="menu-error" class="menu-error" role="alert" aria-live="polite"></p>
+    </main>
+
+    <script src="/assets/menu.js" defer></script>
+  </body>
+</html>

@@ -48,7 +48,22 @@ export function createCalendarController(calendarService) {
         },
 
         /**
-         * Renvoie une période du calendrier avec ses rendez-vous
+         * Renvoie les calendriers visibles par l'utilisateur connecté
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Liste des calendriers (200) ou erreur
+         */
+        list(req, res) {
+            try {
+                const calendars = calendarService.listVisible(res.locals.user?.id);
+                return res.status(200).json(calendars);
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de la récupération des calendriers.");
+            }
+        },
+
+        /**
+         * Renvoie une semaine du calendrier avec ses rendez-vous
          * @param {import("express").Request} req Requête
          * @param {import("express").Response} res Réponse
          * @returns {import("express").Response} Période demandée (200) ou erreur

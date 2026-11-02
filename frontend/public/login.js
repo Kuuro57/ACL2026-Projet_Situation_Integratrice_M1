@@ -2,12 +2,6 @@ const form = document.querySelector("#login-form");
 const message = document.querySelector("#form-message");
 const submitButton = form.querySelector('button[type="submit"]');
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
 function showMessage(text, isError = true) {
     message.textContent = text;
     message.dataset.type = isError ? "error" : "success";
@@ -48,8 +42,18 @@ form.addEventListener("submit", async (event) => {
             return;
         }
 
-        form.reset();
-        showMessage(`connexion de ${data.user.username}.`, false);
+        const sessionResponse = await fetch("/users/me", {
+            headers: { "Accept": "application/json" },
+            credentials: "same-origin"
+        });
+        const sessionData = await sessionResponse.json();
+
+        if (!sessionResponse.ok) {
+            showMessage(sessionData.error || "La session n’a pas pu être vérifiée. Réessayez.");
+            return;
+        }
+
+        window.location.assign("/");
     } catch (error) {
         console.error(error);
         showMessage("Le serveur est inaccessible, réessayez plus tard");

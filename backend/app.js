@@ -5,6 +5,7 @@ import { UserDAO } from "./dao/userDao.js";
 import { UserRepository } from "./repositories/userRepository.js";
 import { UserService } from "./services/userService.js";
 import { createUserController } from "./controllers/userController.js";
+import { createPageController } from "./controllers/pageController.js";
 import { createAuthenticate } from "./middlewares/authenticate.js";
 import { EventDAO } from "./dao/eventDao.js";
 import { EventRepository } from "./repositories/eventRepository.js";
@@ -44,6 +45,7 @@ export function createApp({ database, secret }) {
   const calendarRepository = new CalendarRepository(calendarDao);
   const calendarService = new CalendarService(calendarRepository);
   const calendarController = createCalendarController(calendarService);
+  const pageController = createPageController(userService, calendarRepository);
 
   const app = express();
   app.use(express.json());
@@ -59,26 +61,23 @@ export function createApp({ database, secret }) {
   app.set("views", path.join(frontendDirectory, "view"));
   app.use("/assets", express.static(path.join(frontendDirectory, "public")));
 
-  app.get("/creation-compte", (req, res) => {
-    res.render("creation-compte", {
-      title: "Créer un compte",
-    });
-  });
-  app.get("/", (req, res) => {
-    res.render("login", {
-      title: "Se connecter",
-    });
-  });
+  app
+    .get("/creation-compte", pageController.createAccount)
+    .get("/calendars/nouveau", pageController.createCalendar)
+    .get("/", pageController.menu)
+    .get("/connexion", pageController.login);
 
   // Routes API
   app
     .post("/users/add", userController.create)
     .post("/users/login", userController.login)
+    .post("/users/logout", userController.logout)
     .get("/users/me", authenticate, userController.me);
 
   app
     .post("/calendars", authenticate, calendarController.create)
-    .get("/calendars/:calendarId/:period", authenticate, calendarController.get);
+    .get("/calendars/:calendarId/:period", authenticate, calendarController.get)
+    .get("/calendars", authenticate, calendarController.list);
 
   app
     .post("/calendars/:calendarId/events", authenticate, eventController.create)
