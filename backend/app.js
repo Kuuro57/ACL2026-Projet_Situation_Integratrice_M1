@@ -78,7 +78,7 @@ export function createApp({ database, secret }) {
 
   app
     .post("/calendars", authenticate, calendarController.create)
-    .get("/calendars/:calendarId/week", authenticate, calendarController.getWeek);
+    .get("/calendars/:calendarId/:period", authenticate, calendarController.get);
 
   app
     .post("/calendars/:calendarId/events", authenticate, eventController.create)

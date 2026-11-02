@@ -43,21 +43,29 @@ Ces routes utilisent aussi le cookie `accessToken`.
 | Méthode | Route | Réponse |
 | --- | --- | --- |
 | `POST` | `/calendars` | `201` avec le calendrier créé. |
-| `GET` | `/calendars/:calendarId/week` | `200` avec la semaine demandée et ses rendez-vous. |
+| `GET` | `/calendars/:calendarId/:period` | `200` avec la période demandée (`day`, `week` ou `month`) et ses rendez-vous. |
 
-`POST /calendars` attend un corps JSON `{"name":"Perso"}` (texte non vide, aucun autre champ). L'utilisateur connecté devient `proprietaire` du calendrier. La réponse contient `id`, `name` et `permission`.
+`POST /calendars` attend `{"name":"Perso"}` (texte non vide, aucun autre champ) dans un corps JSON/formulaire. L'utilisateur connecté devient `proprietaire` du calendrier. La réponse contient `id`, `name` et `permission`.
 
-`GET /calendars/:calendarId/week` est accessible à tous les membres du calendrier, y compris les `visiteur`. Deux paramètres facultatifs choisissent la semaine :
+`GET /calendars/:calendarId/:period` est accessible à tous les membres du calendrier, y compris les `visiteur`. `:period` vaut `day`, `week` ou `month` ; toute autre valeur renvoie `400`. Deux paramètres facultatifs choisissent la période :
 
-- `date` : un jour de la semaine voulue, au format `AAAA-MM-JJ` (aujourd'hui par défaut) ;
-- `timeZone` : le fuseau IANA dans lequel la semaine est découpée, par exemple `America/New_York` (`Europe/Paris` par défaut). Côté navigateur, il s'obtient avec `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- `date` : un jour compris dans la période voulue, au format `AAAA-MM-JJ` (aujourd'hui par défaut) ;
+- `timeZone` : le fuseau IANA dans lequel la période est découpée, par exemple `America/New_York` (`Europe/Paris` par défaut). Côté navigateur, il s'obtient avec `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 
-La semaine va du lundi 00:00 au lundi suivant 00:00, à l'heure locale du fuseau (calcul fait avec Luxon, qui gère les changements d'heure). Exemple : `GET /calendars/1/week?date=2026-10-14` renvoie
+Les bornes sont calculées à l'heure locale du fuseau, avec Luxon qui gère les changements d'heure :
+
+| `:period` | Début (inclus) | Fin (exclue) |
+| --- | --- | --- |
+| `day` | le jour de `date` à 00:00 | le lendemain à 00:00 |
+| `week` | le lundi à 00:00 | le lundi suivant à 00:00 |
+| `month` | le 1er du mois à 00:00 | le 1er du mois suivant à 00:00 |
+
+Exemple : `GET /calendars/1/week?date=2026-10-14` renvoie
 
 ```json
 {
   "calendar": { "id": 1, "name": "Perso", "permission": "proprietaire" },
-  "week": {
+  "period": {
     "start": "2026-10-11T22:00:00.000Z",
     "end": "2026-10-18T22:00:00.000Z",
     "timeZone": "Europe/Paris"
@@ -69,9 +77,11 @@ La semaine va du lundi 00:00 au lundi suivant 00:00, à l'heure locale du fuseau
 }
 ```
 
-`week.start` et `week.end` sont les bornes de la semaine en UTC (`end` exclu). `events` contient les rendez-vous qui chevauchent cette période, y compris ceux commencés avant le lundi, triés par date de début.
+Avec la même date, `day` renvoie `2026-10-13T22:00:00.000Z` → `2026-10-14T22:00:00.000Z` et `month` renvoie `2026-09-30T22:00:00.000Z` → `2026-10-31T23:00:00.000Z` (le passage à l'heure d'hiver le 25 octobre décale la fin d'une heure en UTC).
 
-Erreurs : `400` pour un nom, un identifiant, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
+`period.start` et `period.end` sont les bornes de la période en UTC (`end` exclu). `events` contient les rendez-vous qui chevauchent cette période, y compris ceux commencés avant son début, triés par date de début.
+
+Erreurs : `400` pour un nom, un identifiant, une période, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
 
 ### Routes rendez-vous
 

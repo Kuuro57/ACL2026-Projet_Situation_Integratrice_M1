@@ -27,7 +27,7 @@ function respondToError(error, res, fallbackMessage) {
 /**
  * Crée le contrôleur des calendriers
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
- * @returns {{ create: import("express").RequestHandler, getWeek: import("express").RequestHandler }}
+ * @returns {{ create: import("express").RequestHandler, get: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
 export function createCalendarController(calendarService) {
@@ -48,20 +48,21 @@ export function createCalendarController(calendarService) {
         },
 
         /**
-         * Renvoie une semaine du calendrier avec ses rendez-vous
+         * Renvoie une période du calendrier avec ses rendez-vous
          * @param {import("express").Request} req Requête
          * @param {import("express").Response} res Réponse
-         * @returns {import("express").Response} Semaine demandée (200) ou erreur
+         * @returns {import("express").Response} Période demandée (200) ou erreur
          */
-        getWeek(req, res) {
+        get(req, res) {
             try {
-                const week = calendarService.getWeek(res.locals.user?.id, req.params.calendarId, {
+                const calendar = calendarService.get(res.locals.user?.id, req.params.calendarId, {
                     date: req.query.date,
-                    timeZone: req.query.timeZone
+                    timeZone: req.query.timeZone,
+                    period: req.params.period
                 });
-                return res.status(200).json(week);
+                return res.status(200).json(calendar);
             } catch (error) {
-                return respondToError(error, res, "Erreur lors de la récupération de la semaine.");
+                return respondToError(error, res, "Erreur lors de la récupération du calendrier.");
             }
         }
     };

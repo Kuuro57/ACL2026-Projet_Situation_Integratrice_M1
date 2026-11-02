@@ -2,6 +2,7 @@ import { DateTime, IANAZone } from "luxon";
 import { ApplicationError } from "../errors/applicationError.js";
 
 const readPermissions = new Set(["proprietaire", "editeur", "visiteur"]);
+const list_periods = new Set(["day", "week", "month"]);
 
 /**
  * Crée l'erreur renvoyée quand une donnée reçue est invalide
@@ -31,18 +32,18 @@ function parseCalendarId(value) {
 }
 
 /**
- * Calcule les bornes de la semaine demandée, du lundi 00:00 au lundi suivant 00:00 à l'heure locale
- * Luxon gère le fuseau et le changement d'heure : une semaine n'a pas toujours 168 heures
+ * Calcule les bornes de la période demandée, de 00:00 à 00:00 (heure locale)
+ * Luxon gère le fuseau et le changement d'heure
  * @param {{ date?: string, timeZone?: string }} query Paramètres de la requête
  * @returns {{ start: string, end: string, timeZone: string }}
- * Début (inclus) et fin (exclue) de la semaine en ISO UTC, avec le fuseau utilisé
+ * Début (inclus) et fin (exclue) de la période en ISO UTC, avec le fuseau utilisé
  * @throws {ApplicationError} INVALID_CALENDAR_INPUT si un paramètre est inconnu,
  * ou si le fuseau ou la date est invalide
  */
-function getWeekBounds(query) {
+function getPeriodBounds(query) {
     if (!query || typeof query !== "object" || Array.isArray(query)
-        || Object.keys(query).some(key => !["date", "timeZone"].includes(key))) {
-        throw invalidInput("Les paramètres acceptés sont date et timeZone.");
+        || Object.keys(query).some(key => !["date", "timeZone", "period"].includes(key))) {
+        throw invalidInput("Les paramètres acceptés sont date, timeZone et period.");
     }
 
     const timeZone = query.timeZone === undefined ? "Europe/Paris" : query.timeZone;
@@ -61,10 +62,33 @@ function getWeekBounds(query) {
         throw invalidInput("La date demandée est invalide.");
     }
 
-    const start = date.startOf("week");
+    if (!list_periods.has(query.period)) {
+        throw invalidInput("La période demandée est invalide.");
+    }
+
+    const start = date.startOf(query.period);
+
+    let end;
+    switch (query.period) {
+        case "day":
+            end = start.plus({ days: 1 });
+            break;
+    
+        case "week":
+            end = start.plus({ weeks: 1 });
+            break;
+
+        case "month":
+            end = start.plus({ months: 1 });
+            break;
+
+        default:
+            break;
+    }
 
     // On reprend le début du jour si un changement d'heure a décalé le premier lundi
-    const end = start.plus({ weeks: 1 }).startOf("day");
+    end = end.startOf("day");
+
     return { start: start.toUTC().toISO(), end: end.toUTC().toISO(), timeZone };
 }
 
@@ -132,22 +156,23 @@ export class CalendarService {
     }
 
     /**
-     * Renvoie l'agenda, les bornes de la semaine et les rendez-vous qui la chevauchent
+     * Renvoie l'agenda, les bornes de la période (day, week, month) et les rendez-vous qui la chevauchent
      * @param {string} userId Identifiant de l'utilisateur connecté
      * @param {string|number} calendarId Identifiant de l'agenda
-     * @param {Object} [query={}] Semaine demandée
+     * @param {Object} [query={}] Période demandée
      * @param {string} [query.date] Un jour de la semaine au format YYYY-MM-DD (aujourd'hui par défaut)
-     * @param {string} [query.timeZone] Fuseau IANA utilisé pour découper la semaine (Europe/Paris par défaut)
+     * @param {string} [query.timeZone] Fuseau IANA utilisé (Europe/Paris par défaut)
+     * @param {string} [query.period] Période demandée (day, week, month)
      * @returns {{ calendar: { id: number, name: string, permission: string },
-     * week: { start: string, end: string, timeZone: string }, events: Object[] }}
-     * Agenda, bornes de la semaine et rendez-vous triés par date de début
+     * period: { start: string, end: string, timeZone: string }, events: Object[] }}
+     * Agenda, bornes de la période et rendez-vous triés par date de début
      * @throws {ApplicationError} AUTHENTICATION_REQUIRED, INVALID_CALENDAR_INPUT,
      * CALENDAR_NOT_FOUND si l'agenda n'existe pas ou CALENDAR_ACCESS_DENIED si l'utilisateur n'en est pas membre
      */
-    getWeek(userId, calendarId, query = {}) {
+    get(userId, calendarId, query = {}) {
         this.requireUser(userId);
         const id = parseCalendarId(calendarId);
-        const week = getWeekBounds(query);
+        const period = getPeriodBounds(query);
 
         return this.calendarRepository.transaction(() => {
             this.requireExistingUser(userId);
@@ -161,8 +186,8 @@ export class CalendarService {
 
             return {
                 calendar,
-                week,
-                events: this.calendarRepository.findEvents(id, week.start, week.end)
+                period,
+                events: this.calendarRepository.findEvents(id, period.start, period.end)
             };
         });
     }
