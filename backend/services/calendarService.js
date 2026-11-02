@@ -2,7 +2,39 @@ import { DateTime, IANAZone } from "luxon";
 import { ApplicationError } from "../errors/applicationError.js";
 
 const readPermissions = new Set(["proprietaire", "editeur", "visiteur"]);
-const list_periods = new Set(["day", "week", "month"]);
+const authorizedPeriods = {
+    day: "day",
+    week: "week",
+    month: "month"
+};
+
+/**
+ * Retourne la date de fin de la période donnée par rapport à la date donnée
+ * @param {date} date 
+ * @param {string} period 
+ * @returns {date} La date de fin (du mois, de la semiane, de la journée...)
+ */
+function getEndOfPeriod(date, period) {
+    let end;
+    switch (period) {
+        case authorizedPeriods.day:
+            end = date.plus({ days: 1 });
+            break;
+    
+        case authorizedPeriods.week:
+            end = date.plus({ weeks: 1 });
+            break;
+
+        case authorizedPeriods.month:
+            end = date.plus({ months: 1 });
+            break;
+
+        default:
+            throw invalidInput("La période demandée est invalide.");
+    }
+
+    return end;
+}
 
 /**
  * Crée l'erreur renvoyée quand une donnée reçue est invalide
@@ -34,7 +66,7 @@ function parseCalendarId(value) {
 /**
  * Calcule les bornes de la période demandée, de 00:00 à 00:00 (heure locale)
  * Luxon gère le fuseau et le changement d'heure
- * @param {{ date?: string, timeZone?: string }} query Paramètres de la requête
+ * @param {{ date?: string, timeZone?: string, period: string }} query Paramètres de la requête
  * @returns {{ start: string, end: string, timeZone: string }}
  * Début (inclus) et fin (exclue) de la période en ISO UTC, avec le fuseau utilisé
  * @throws {ApplicationError} INVALID_CALENDAR_INPUT si un paramètre est inconnu,
@@ -62,32 +94,14 @@ function getPeriodBounds(query) {
         throw invalidInput("La date demandée est invalide.");
     }
 
-    if (!list_periods.has(query.period)) {
+    if (!Object.values(authorizedPeriods).includes(query.period)) {
         throw invalidInput("La période demandée est invalide.");
     }
 
     const start = date.startOf(query.period);
 
-    let end;
-    switch (query.period) {
-        case "day":
-            end = start.plus({ days: 1 });
-            break;
-    
-        case "week":
-            end = start.plus({ weeks: 1 });
-            break;
-
-        case "month":
-            end = start.plus({ months: 1 });
-            break;
-
-        default:
-            break;
-    }
-
     // On reprend le début du jour si un changement d'heure a décalé le premier lundi
-    end = end.startOf("day");
+    let end = getEndOfPeriod(start, query.period).startOf("day");
 
     return { start: start.toUTC().toISO(), end: end.toUTC().toISO(), timeZone };
 }
