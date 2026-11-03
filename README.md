@@ -83,6 +83,10 @@ Avec la même date, `day` renvoie `2026-10-13T22:00:00.000Z` → `2026-10-14T22:
 
 Erreurs : `400` pour un nom, un identifiant, une période, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
 
+La page `/calendrier/:calendarId` affiche la semaine en cours sur toute la journée (00h00 à 23h59). La grille défile et s'ouvre à 7h, les flèches changent de semaine.
+
+**Temporaire :** en attendant que la connexion soit branchée au front, `GET /calendars/:calendarId/week` est publique : pas de cookie demandé, pas de vérification des droits (seul le `404` reste). Voir le `TODO permissions` dans `calendarService.getWeek`.
+
 ### Routes rendez-vous
 
 Ces routes utilisent le cookie `accessToken` obtenu à la connexion. Le calendrier doit déjà exister et l'utilisateur doit y être `proprietaire` ou `editeur` dans `calendarUser` ; un `visiteur` ne peut pas écrire. Les données viennent du corps JSON de la requête.

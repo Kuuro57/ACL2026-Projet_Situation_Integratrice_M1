@@ -67,6 +67,13 @@ export function createApp({ database, secret }) {
     .get("/", pageController.menu)
     .get("/connexion", pageController.login);
 
+  app.get("/calendrier/:calendarId", (req, res) => {
+    res.render("calendrier", {
+      title: "Calendrier",
+      calendarId: req.params.calendarId,
+    });
+  });
+
   // Routes API
   app
     .post("/users/add", userController.create)
@@ -78,7 +85,9 @@ export function createApp({ database, secret }) {
     .post("/calendars", authenticate, calendarController.create)
     .get("/calendars/:calendarId/:period", authenticate, calendarController.get)
     .get("/calendars", authenticate, calendarController.list)
-    .get("/calendarview/:calendarId", authenticate, pageController.calendarWeek);
+    .get("/calendarview/:calendarId", authenticate, pageController.calendarWeek)
+    // TODO permissions : route publique pour l'instant, remettre authenticate (voir calendarService.getWeek)
+    .get("/calendars/:calendarId/week", calendarController.getWeek);
 
   app
     .post("/calendars/:calendarId/events", authenticate, eventController.create)
