@@ -83,9 +83,7 @@ Avec la même date, `day` renvoie `2026-10-13T22:00:00.000Z` → `2026-10-14T22:
 
 Erreurs : `400` pour un nom, un identifiant, une période, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
 
-La page `/calendrier/:calendarId` affiche la semaine en cours sur toute la journée (00h00 à 23h59). La grille défile et s'ouvre à 7h, les flèches changent de semaine.
-
-**Temporaire :** en attendant que la connexion soit branchée au front, `GET /calendars/:calendarId/week` est publique : pas de cookie demandé, pas de vérification des droits (seul le `404` reste). Voir le `TODO permissions` dans `calendarService.getWeek`.
+La page `/calendarview/:calendarId` (ouverte depuis « Mes agendas ») affiche l'agenda en vue jour, semaine ou mois, avec `GET /calendars/:calendarId/:period`. Les vues jour et semaine couvrent toute la journée (00h00 à 23h59), la grille défile et s'ouvre à 7h. En vue mois, cliquer sur un jour ouvre sa vue jour. Sans connexion, la page redirige vers `/connexion`.
 
 ### Routes rendez-vous
 

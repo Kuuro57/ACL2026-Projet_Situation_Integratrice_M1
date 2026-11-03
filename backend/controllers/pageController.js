@@ -3,7 +3,8 @@
  * @param {import("../services/userService.js").UserService} userService Service utilisateur
  * @param {import("../repositories/calendarRepository.js").CalendarRepository} calendarRepository Repository calendrier
  * @returns {{ createAccount: import("express").RequestHandler, createCalendar: import("express").RequestHandler,
- * menu: import("express").RequestHandler, login: import("express").RequestHandler }}
+ * menu: import("express").RequestHandler, login: import("express").RequestHandler,
+ * calendar: import("express").RequestHandler }}
  */
 export function createPageController(userService, calendarRepository) {
     return {
@@ -45,12 +46,17 @@ export function createPageController(userService, calendarRepository) {
             });
         },
 
-        calendarWeek(req,res){
+        calendar(req, res) {
+            try {
+                const user = userService.verifyAccessToken(req.cookies?.accessToken);
+                if (!calendarRepository.userExists(user.id)) return res.redirect("/connexion");
+            } catch {
+                return res.redirect("/connexion");
+            }
 
             return res.render("calendrier", {
-                title: "vue calendrier",
-                calendarId: req.params.calendarId
-                
+                title: "Agenda",
+                calendarId: req.params.calendarId,
             });
         }
     };

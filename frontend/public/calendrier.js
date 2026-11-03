@@ -1,14 +1,18 @@
 const SCROLL_TO_HOUR = 7;
+const MONTH_EVENTS_SHOWN = 3;
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const calendarId = document.querySelector("#calendar").dataset.calendarId;
-const scrollArea = document.querySelector(".week-scroll");
-const grid = document.querySelector("#week-grid");
-const weekLabel = document.querySelector("#week-label");
+const scrollArea = document.querySelector(".calendar-scroll");
+const grid = document.querySelector("#calendar-grid");
+const periodLabel = document.querySelector("#period-label");
 const message = document.querySelector("#calendar-message");
+const viewButtons = document.querySelectorAll("[data-view]");
 
 const weekdayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const rangeFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+const dayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const monthFormat = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 const errorMessages = {
@@ -17,7 +21,8 @@ const errorMessages = {
     404: "Ce calendrier n'existe pas"
 };
 
-let monday = mondayOf(new Date());
+let view = "week";
+let current = startOfDay(new Date());
 let lastRequest = 0;
 let hasScrolled = false;
 
@@ -28,13 +33,23 @@ function mondayOf(date) {
     return result;
 }
 
+function startOfDay(date) {
+    const result = new Date(date);
+    result.setHours(0, 0, 0, 0);
+    return result;
+}
+
+function firstOfMonth(date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
 function addDays(date, days) {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
 }
 
-// Pas de toISOString ici : en UTC on tomberait sur le dimanche
+// Pas de toISOString ici : en UTC on tomberait sur la veille
 function toDateParam(date) {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
@@ -43,6 +58,15 @@ function toDateParam(date) {
 
 function isSameDay(first, second) {
     return first.toDateString() === second.toDateString();
+}
+
+function eventEnd(event) {
+    return new Date(new Date(event.start).getTime() + event.duration * 60 * 1000);
+}
+
+function eventsOfDay(events, day) {
+    const nextDay = addDays(day, 1);
+    return events.filter(event => new Date(event.start) < nextDay && eventEnd(event) > day);
 }
 
 function showMessage(text) {
@@ -55,6 +79,18 @@ function createElement(tag, className, text) {
     if (className) element.className = className;
     if (text) element.textContent = text;
     return element;
+}
+
+function periodStart() {
+    if (view === "day") return current;
+    if (view === "week") return mondayOf(current);
+    return firstOfMonth(current);
+}
+
+function periodTitle(start) {
+    if (view === "day") return dayFormat.format(start);
+    if (view === "week") return rangeFormat.formatRange(start, addDays(start, 6));
+    return monthFormat.format(start);
 }
 
 function renderDayHeader(day, today) {
@@ -101,10 +137,12 @@ function renderEvent(event, dayStart, dayEnd) {
     return block;
 }
 
-function renderWeek(events) {
-    const days = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+// Vue jour (1 colonne) et vue semaine (7 colonnes)
+function renderTimeGrid(days, events) {
     const today = new Date();
 
+    grid.className = "time-grid";
+    grid.style.setProperty("--days", days.length);
     grid.replaceChildren(createElement("div", "corner"));
 
     for (const day of days) {
@@ -128,7 +166,7 @@ function renderWeek(events) {
         }
     });
 
-    // On descend à 7h seulement au premier chargement
+    // On descend à 7h au premier affichage de la grille (et en revenant de la vue mois)
     if (!hasScrolled) {
         const hourHeight = columns[0].offsetHeight / 24;
         scrollArea.scrollTop = SCROLL_TO_HOUR * hourHeight;
@@ -136,49 +174,123 @@ function renderWeek(events) {
     }
 }
 
-async function loadWeek() {
+function renderMonthEvent(event, day) {
+    const start = new Date(event.start);
+    const item = createElement("span", "month-event");
+    item.textContent = `${start < day ? "(suite)" : timeFormat.format(start)} ${event.title}`;
+    item.title = event.description ? `${event.title}\n${event.description}` : event.title;
+    return item;
+}
+
+// Les jours du mois précédent/suivant complètent les semaines, sans leurs rdv
+function renderMonth(firstDay, events) {
+    const today = new Date();
+    const gridStart = mondayOf(firstDay);
+    const nextMonth = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 1);
+    const weeks = Math.ceil((addDays(nextMonth, -1).getDate() + (firstDay.getDay() + 6) % 7) / 7);
+
+    grid.className = "month-grid";
+    grid.style.removeProperty("--days");
+    grid.replaceChildren();
+
+    for (let index = 0; index < 7; index++) {
+        grid.append(createElement("div", "month-weekday", weekdayFormat.format(addDays(gridStart, index))));
+    }
+
+    for (let index = 0; index < weeks * 7; index++) {
+        const day = addDays(gridStart, index);
+        const inMonth = day.getMonth() === firstDay.getMonth();
+        const cell = createElement("button", "month-day");
+        cell.type = "button";
+        cell.classList.toggle("outside", !inMonth);
+        cell.classList.toggle("today", isSameDay(day, today));
+        cell.setAttribute("aria-label", dayFormat.format(day));
+        cell.append(createElement("span", "month-day-number", String(day.getDate())));
+
+        const dayEvents = inMonth ? eventsOfDay(events, day) : [];
+        for (const event of dayEvents.slice(0, MONTH_EVENTS_SHOWN)) {
+            cell.append(renderMonthEvent(event, day));
+        }
+        if (dayEvents.length > MONTH_EVENTS_SHOWN) {
+            cell.append(createElement("span", "month-more", `+ ${dayEvents.length - MONTH_EVENTS_SHOWN} autre(s)`));
+        }
+
+        cell.addEventListener("click", () => {
+            current = day;
+            setView("day");
+        });
+        grid.append(cell);
+    }
+
+    scrollArea.scrollTop = 0;
+    hasScrolled = false;
+}
+
+function render(start, events) {
+    if (view === "month") {
+        renderMonth(start, events);
+    } else {
+        const length = view === "day" ? 1 : 7;
+        renderTimeGrid(Array.from({ length }, (_, index) => addDays(start, index)), events);
+    }
+}
+
+async function loadPeriod() {
     const request = ++lastRequest;
-    weekLabel.textContent = rangeFormat.formatRange(monday, addDays(monday, 6));
+    const start = periodStart();
+    periodLabel.textContent = periodTitle(start);
     showMessage("");
 
     try {
-        const params = new URLSearchParams({ date: toDateParam(monday), timeZone });
-        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/week?${params}`, {
+        const params = new URLSearchParams({ date: toDateParam(start), timeZone });
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/${view}?${params}`, {
             headers: { "Accept": "application/json" }
         });
         const data = await response.json();
 
-        // Réponse d'une semaine qu'on a déjà quittée
+        // Réponse d'une période qu'on a déjà quittée
         if (request !== lastRequest) return;
 
         if (!response.ok) {
-            renderWeek([]);
+            render(start, []);
             showMessage(errorMessages[response.status] || data.error || "Impossible de charger le calendrier");
             return;
         }
 
-        renderWeek(data.events);
+        render(start, data.events);
     } catch (error) {
         console.error(error);
         if (request !== lastRequest) return;
-        renderWeek([]);
+        render(start, []);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
     }
 }
 
-document.querySelector("#previous-week").addEventListener("click", () => {
-    monday = addDays(monday, -7);
-    loadWeek();
+function setView(nextView) {
+    view = nextView;
+    for (const button of viewButtons) {
+        button.setAttribute("aria-pressed", String(button.dataset.view === view));
+    }
+    loadPeriod();
+}
+
+function move(step) {
+    if (view === "day") current = addDays(current, step);
+    if (view === "week") current = addDays(current, 7 * step);
+    if (view === "month") current = new Date(current.getFullYear(), current.getMonth() + step, 1);
+    loadPeriod();
+}
+
+for (const button of viewButtons) {
+    button.addEventListener("click", () => setView(button.dataset.view));
+}
+
+document.querySelector("#previous-period").addEventListener("click", () => move(-1));
+document.querySelector("#next-period").addEventListener("click", () => move(1));
+
+document.querySelector("#current-period").addEventListener("click", () => {
+    current = startOfDay(new Date());
+    loadPeriod();
 });
 
-document.querySelector("#next-week").addEventListener("click", () => {
-    monday = addDays(monday, 7);
-    loadWeek();
-});
-
-document.querySelector("#current-week").addEventListener("click", () => {
-    monday = mondayOf(new Date());
-    loadWeek();
-});
-
-loadWeek();
+loadPeriod();

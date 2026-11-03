@@ -185,7 +185,7 @@ export class CalendarService {
 
     /**
      * Renvoie l'agenda, les bornes de la semaine et les rendez-vous qui la chevauchent
-     * @param {?string} userId Identifiant de l'utilisateur connecté (absent tant que la route est publique)
+     * @param {string} userId Identifiant de l'utilisateur connecté
      * @param {string|number} calendarId Identifiant de l'agenda
      * @param {Object} [query={}] Période demandée
      * @param {string} [query.date] Un jour de la semaine au format YYYY-MM-DD (aujourd'hui par défaut)
@@ -203,13 +203,13 @@ export class CalendarService {
         const period = getPeriodBounds(query);
 
         return this.calendarRepository.transaction(() => {
-            // TODO permissions : pour l'instant tout le monde peut voir la semaine, sans être connecté.
-            // Quand la connexion sera branchée au front, remettre requireUser et requireExistingUser,
-            // refuser avec CALENDAR_ACCESS_DENIED si readPermissions n'a pas calendar.permission,
-            // et remettre authenticate sur la route dans app.js.
-            const calendar = this.calendarRepository.findAccess(id, userId ?? null);
+            this.requireExistingUser(userId);
+            const calendar = this.calendarRepository.findAccess(id, userId);
             if (!calendar) {
                 throw new ApplicationError("CALENDAR_NOT_FOUND", "Calendrier introuvable.");
+            }
+            if (!readPermissions.has(calendar.permission)) {
+                throw new ApplicationError("CALENDAR_ACCESS_DENIED", "Vous ne pouvez pas consulter ce calendrier.");
             }
 
             return {

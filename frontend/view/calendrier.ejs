@@ -8,21 +8,29 @@
   </head>
   <body>
     <main id="calendar" data-calendar-id="<%= calendarId %>">
-      <header class="calendar-toolbar">
-        <h1 id="week-label"></h1>
+      <a class="back-link" href="/">&larr; Mes agendas</a>
 
-        <nav class="week-navigation" aria-label="Changer de semaine">
+      <header class="calendar-toolbar">
+        <h1 id="period-label"></h1>
+
+        <div class="view-switch" role="group" aria-label="Choisir la vue">
+          <button type="button" data-view="day" aria-pressed="false">Jour</button>
+          <button type="button" data-view="week" aria-pressed="true">Semaine</button>
+          <button type="button" data-view="month" aria-pressed="false">Mois</button>
+        </div>
+
+        <nav class="period-navigation" aria-label="Changer de période">
           <button type="button" id="add-event" aria-label="Ajouter un événement">&plus;</button>
-          <button type="button" id="previous-week" aria-label="Semaine précédente">&lt;</button>
-          <button type="button" id="current-week">Aujourd'hui</button>
-          <button type="button" id="next-week" aria-label="Semaine suivante">&gt;</button>
+          <button type="button" id="previous-period" aria-label="Période précédente">&lt;</button>
+          <button type="button" id="current-period">Aujourd'hui</button>
+          <button type="button" id="next-period" aria-label="Période suivante">&gt;</button>
         </nav>
       </header>
 
       <p id="calendar-message" role="alert" aria-live="polite" hidden></p>
 
-      <div class="week-scroll">
-        <div id="week-grid" class="week-grid"></div>
+      <div class="calendar-scroll">
+        <div id="calendar-grid"></div>
       </div>
     </main>
 
