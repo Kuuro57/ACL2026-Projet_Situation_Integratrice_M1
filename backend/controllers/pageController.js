@@ -44,5 +44,14 @@ export function createPageController(userService, calendarRepository) {
                 title: "Se connecter",
             });
         },
+
+        calendarWeek(req,res){
+
+            return res.render("calendrier", {
+                title: "vue calendrier",
+                calendarId: req.params.calendarId
+                
+            });
+        }
     };
 }
