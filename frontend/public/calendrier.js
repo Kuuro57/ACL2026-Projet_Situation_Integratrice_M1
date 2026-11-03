@@ -8,6 +8,10 @@ const grid = document.querySelector("#calendar-grid");
 const periodLabel = document.querySelector("#period-label");
 const message = document.querySelector("#calendar-message");
 const viewButtons = document.querySelectorAll("[data-view]");
+const addButton = document.querySelector("#add-event");
+const eventDialog = document.querySelector("#event-dialog");
+const eventForm = document.querySelector("#event-form");
+const eventFormMessage = document.querySelector("#event-form-message");
 
 const weekdayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const rangeFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -20,6 +24,7 @@ const errorMessages = {
     403: "Vous n'avez pas accès à ce calendrier",
     404: "Ce calendrier n'existe pas"
 };
+const writePermissions = new Set(["proprietaire", "editeur"]);
 
 let view = "week";
 let current = startOfDay(new Date());
@@ -252,15 +257,18 @@ async function loadPeriod() {
         if (request !== lastRequest) return;
 
         if (!response.ok) {
+            addButton.hidden = true;
             render(start, []);
             showMessage(errorMessages[response.status] || data.error || "Impossible de charger le calendrier");
             return;
         }
 
+        addButton.hidden = !writePermissions.has(data.calendar.permission);
         render(start, data.events);
     } catch (error) {
         console.error(error);
         if (request !== lastRequest) return;
+        addButton.hidden = true;
         render(start, []);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
     }
@@ -274,6 +282,71 @@ function setView(nextView) {
     loadPeriod();
 }
 
+function openEventDialog() {
+    eventForm.reset();
+    eventFormMessage.textContent = "";
+    eventForm.elements.date.value = toDateParam(current);
+    eventDialog.showModal();
+    eventForm.elements.title.focus();
+}
+
+// new Date(année, mois, jour, h, min) garde l'heure saisie comme une heure locale
+function localDateTime(dateValue, timeValue) {
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    return new Date(year, month - 1, day, hours, minutes);
+}
+
+async function submitEvent(event) {
+    event.preventDefault();
+    const submitButton = eventForm.querySelector('button[type="submit"]');
+    const form = new FormData(eventForm);
+    const title = form.get("title").trim();
+    eventFormMessage.textContent = "";
+
+    if (!title || !form.get("date") || !form.get("start") || !form.get("end")) {
+        eventFormMessage.textContent = "Le titre, la date et les heures sont obligatoires";
+        return;
+    }
+
+    const start = localDateTime(form.get("date"), form.get("start"));
+    const end = localDateTime(form.get("date"), form.get("end"));
+    if (end <= start) {
+        eventFormMessage.textContent = "L'heure de fin doit être après l'heure de début";
+        return;
+    }
+
+    submitButton.disabled = true;
+    try {
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+                start: start.toISOString(),
+                duration: (end - start) / 60000,
+                title,
+                description: form.get("description").trim() || null,
+                reminderTime: form.get("reminderTime") ? Number(form.get("reminderTime")) : null
+            })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            eventFormMessage.textContent = data.error || "Le rendez-vous n'a pas pu être ajouté";
+            return;
+        }
+
+        eventDialog.close();
+        current = startOfDay(start);
+        loadPeriod();
+    } catch (error) {
+        console.error(error);
+        eventFormMessage.textContent = "Le serveur est inaccessible, réessayez plus tard";
+    } finally {
+        submitButton.disabled = false;
+    }
+}
+
 function move(step) {
     if (view === "day") current = addDays(current, step);
     if (view === "week") current = addDays(current, 7 * step);
@@ -284,6 +357,10 @@ function move(step) {
 for (const button of viewButtons) {
     button.addEventListener("click", () => setView(button.dataset.view));
 }
+
+addButton.addEventListener("click", openEventDialog);
+eventForm.addEventListener("submit", submitEvent);
+document.querySelector("#event-cancel").addEventListener("click", () => eventDialog.close());
 
 document.querySelector("#previous-period").addEventListener("click", () => move(-1));
 document.querySelector("#next-period").addEventListener("click", () => move(1));

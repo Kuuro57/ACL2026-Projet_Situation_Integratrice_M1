@@ -20,7 +20,7 @@
         </div>
 
         <nav class="period-navigation" aria-label="Changer de période">
-          <button type="button" id="add-event" aria-label="Ajouter un événement">&plus;</button>
+          <button type="button" id="add-event" aria-label="Ajouter un événement" hidden>&plus;</button>
           <button type="button" id="previous-period" aria-label="Période précédente">&lt;</button>
           <button type="button" id="current-period">Aujourd'hui</button>
           <button type="button" id="next-period" aria-label="Période suivante">&gt;</button>
@@ -33,6 +33,56 @@
         <div id="calendar-grid"></div>
       </div>
     </main>
+
+    <dialog id="event-dialog" aria-labelledby="event-dialog-title">
+      <form id="event-form" novalidate>
+        <h2 id="event-dialog-title">Nouveau rendez-vous</h2>
+
+        <div class="form-field">
+          <label for="event-title">Titre</label>
+          <input id="event-title" name="title" type="text" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="event-date">Date</label>
+            <input id="event-date" name="date" type="date" required />
+          </div>
+          <div class="form-field">
+            <label for="event-start">Début</label>
+            <input id="event-start" name="start" type="time" value="09:00" required />
+          </div>
+          <div class="form-field">
+            <label for="event-end">Fin</label>
+            <input id="event-end" name="end" type="time" value="10:00" required />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="event-description">Description (facultative)</label>
+          <textarea id="event-description" name="description" rows="3"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="event-reminder">Rappel</label>
+          <select id="event-reminder" name="reminderTime">
+            <option value="">Aucun</option>
+            <option value="5">5 minutes avant</option>
+            <option value="15">15 minutes avant</option>
+            <option value="30">30 minutes avant</option>
+            <option value="60">1 heure avant</option>
+            <option value="1440">1 jour avant</option>
+          </select>
+        </div>
+
+        <p id="event-form-message" role="alert" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button type="button" id="event-cancel" class="button-secondary">Annuler</button>
+          <button type="submit">Ajouter</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/assets/calendrier.js" defer></script>
   </body>
