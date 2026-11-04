@@ -65,7 +65,8 @@ export function createApp({ database, secret }) {
     .get("/creation-compte", pageController.createAccount)
     .get("/calendars/nouveau", pageController.createCalendar)
     .get("/", pageController.menu)
-    .get("/connexion", pageController.login);
+    .get("/connexion", pageController.login)
+    .get("/calendarview/:calendarId", pageController.calendar);
 
   // Routes API
   app

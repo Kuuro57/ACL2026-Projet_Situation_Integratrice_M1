@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/assets/calendrier.css" />
+  </head>
+  <body>
+    <main id="calendar" data-calendar-id="<%= calendarId %>">
+      <a class="back-link" href="/">&larr; Mes agendas</a>
+
+      <header class="calendar-toolbar">
+        <h1 id="period-label"></h1>
+
+        <div class="view-switch" role="group" aria-label="Choisir la vue">
+          <button type="button" data-view="day" aria-pressed="false">Jour</button>
+          <button type="button" data-view="week" aria-pressed="true">Semaine</button>
+          <button type="button" data-view="month" aria-pressed="false">Mois</button>
+        </div>
+
+        <nav class="period-navigation" aria-label="Changer de période">
+          <button type="button" id="add-event" aria-label="Ajouter un événement" hidden>&plus;</button>
+          <button type="button" id="previous-period" aria-label="Période précédente">&lt;</button>
+          <button type="button" id="current-period">Aujourd'hui</button>
+          <button type="button" id="next-period" aria-label="Période suivante">&gt;</button>
+        </nav>
+      </header>
+
+      <p id="calendar-message" role="alert" aria-live="polite" hidden></p>
+
+      <div class="calendar-scroll">
+        <div id="calendar-grid"></div>
+      </div>
+    </main>
+
+    <dialog id="event-dialog" aria-labelledby="event-dialog-title">
+      <form id="event-form" novalidate>
+        <h2 id="event-dialog-title">Nouveau rendez-vous</h2>
+
+        <div class="form-field">
+          <label for="event-title">Titre</label>
+          <input id="event-title" name="title" type="text" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="event-start">Début</label>
+            <input id="event-start" name="start" type="datetime-local" required />
+          </div>
+          <div class="form-field">
+            <label for="event-end">Fin</label>
+            <input id="event-end" name="end" type="datetime-local" required />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="event-description">Description (facultative)</label>
+          <textarea id="event-description" name="description" rows="3"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="event-reminder">Rappel</label>
+          <select id="event-reminder" name="reminderTime">
+            <option value="">Aucun</option>
+            <option value="5">5 minutes avant</option>
+            <option value="15">15 minutes avant</option>
+            <option value="30">30 minutes avant</option>
+            <option value="60">1 heure avant</option>
+            <option value="1440">1 jour avant</option>
+          </select>
+        </div>
+
+        <p id="event-form-message" role="alert" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button type="button" id="event-delete" class="button-danger" hidden>Supprimer</button>
+          <button type="button" id="event-cancel" class="button-secondary">Annuler</button>
+          <button type="submit" id="event-submit">Ajouter</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="/assets/calendrier.js" defer></script>
+  </body>
+</html>

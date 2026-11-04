@@ -83,6 +83,8 @@ Avec la même date, `day` renvoie `2026-10-13T22:00:00.000Z` → `2026-10-14T22:
 
 Erreurs : `400` pour un nom, un identifiant, une période, une date ou un fuseau invalide, `401` sans authentification valide ou si le compte connecté a été supprimé, `403` si l'utilisateur n'est pas membre du calendrier, `404` si le calendrier n'existe pas.
 
+La page `/calendarview/:calendarId` (ouverte depuis « Mes agendas ») affiche l'agenda en vue jour, semaine ou mois, avec `GET /calendars/:calendarId/:period`. Les vues jour et semaine couvrent toute la journée (00h00 à 23h59), la grille défile et s'ouvre à 7h. En vue mois, cliquer sur un jour ouvre sa vue jour ; les jours des mois voisins (en grisé) affichent aussi leurs rendez-vous, récupérés avec la première et la dernière semaine de la grille. Le bouton `+` ouvre un formulaire qui crée un rendez-vous avec `POST /calendars/:calendarId/events` ; il n'apparaît que pour un `proprietaire` ou un `editeur`. Pour eux, cliquer sur un rendez-vous rouvre ce formulaire pour le modifier (`PATCH`) ou le supprimer (`DELETE`). Sans connexion, la page redirige vers `/connexion`.
+
 ### Routes rendez-vous
 
 Ces routes utilisent le cookie `accessToken` obtenu à la connexion. Le calendrier doit déjà exister et l'utilisateur doit y être `proprietaire` ou `editeur` dans `calendarUser` ; un `visiteur` ne peut pas écrire. Les données viennent du corps JSON de la requête.

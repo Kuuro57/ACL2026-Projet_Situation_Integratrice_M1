@@ -43,14 +43,20 @@ async function loadCalendars() {
   message.textContent = "";
   for (const calendar of calendars) {
     const item = document.createElement("li");
-    const button = document.createElement("button");
+    /*const button = document.createElement("button");
     button.type = "button";
     button.className = "calendar-button";
     button.textContent = calendar.name;
     button.dataset.calendarId = calendar.id;
     button.addEventListener("click", () => {
       message.textContent = "La page de visualisation de cet agenda n’est pas encore disponible.";
-    });
+    });*/
+    const button = document.createElement("a")
+    button.type = "anchor"
+    button.className = "calendar-button";
+    button.textContent = calendar.name;
+    button.dataset.calendarId = calendar.id;
+    button.href =`/calendarview/${calendar.id}`
     item.append(button);
     calendarList.append(item);
   }
