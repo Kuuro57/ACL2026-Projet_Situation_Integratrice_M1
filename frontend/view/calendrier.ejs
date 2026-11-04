@@ -45,16 +45,12 @@
 
         <div class="form-row">
           <div class="form-field">
-            <label for="event-date">Date</label>
-            <input id="event-date" name="date" type="date" required />
-          </div>
-          <div class="form-field">
             <label for="event-start">Début</label>
-            <input id="event-start" name="start" type="time" value="09:00" required />
+            <input id="event-start" name="start" type="datetime-local" required />
           </div>
           <div class="form-field">
             <label for="event-end">Fin</label>
-            <input id="event-end" name="end" type="time" value="10:00" required />
+            <input id="event-end" name="end" type="datetime-local" required />
           </div>
         </div>
 
@@ -78,8 +74,9 @@
         <p id="event-form-message" role="alert" aria-live="polite"></p>
 
         <div class="dialog-actions">
+          <button type="button" id="event-delete" class="button-danger" hidden>Supprimer</button>
           <button type="button" id="event-cancel" class="button-secondary">Annuler</button>
-          <button type="submit">Ajouter</button>
+          <button type="submit" id="event-submit">Ajouter</button>
         </div>
       </form>
     </dialog>

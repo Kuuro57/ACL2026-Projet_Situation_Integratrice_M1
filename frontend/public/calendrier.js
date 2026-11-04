@@ -12,6 +12,9 @@ const addButton = document.querySelector("#add-event");
 const eventDialog = document.querySelector("#event-dialog");
 const eventForm = document.querySelector("#event-form");
 const eventFormMessage = document.querySelector("#event-form-message");
+const eventDialogTitle = document.querySelector("#event-dialog-title");
+const submitButton = document.querySelector("#event-submit");
+const deleteButton = document.querySelector("#event-delete");
 
 const weekdayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const rangeFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -30,6 +33,8 @@ let view = "week";
 let current = startOfDay(new Date());
 let lastRequest = 0;
 let hasScrolled = false;
+let canWrite = false;
+let editedEvent = null;
 
 function mondayOf(date) {
     const result = new Date(date);
@@ -139,6 +144,15 @@ function renderEvent(event, dayStart, dayEnd) {
         createElement("strong", "event-title", event.title),
         createElement("span", "event-time", `${timeFormat.format(start)} – ${timeFormat.format(end)}`)
     );
+
+    if (canWrite) {
+        block.tabIndex = 0;
+        block.classList.add("editable");
+        block.addEventListener("click", () => openEventDialog(event));
+        block.addEventListener("keydown", (keyEvent) => {
+            if (keyEvent.key === "Enter") openEventDialog(event);
+        });
+    }
     return block;
 }
 
@@ -184,6 +198,15 @@ function renderMonthEvent(event, day) {
     const item = createElement("span", "month-event");
     item.textContent = `${start < day ? "(suite)" : timeFormat.format(start)} ${event.title}`;
     item.title = event.description ? `${event.title}\n${event.description}` : event.title;
+
+    if (canWrite) {
+        item.classList.add("editable");
+        item.addEventListener("click", (clickEvent) => {
+            // Sinon le clic ouvre aussi la vue jour de la case
+            clickEvent.stopPropagation();
+            openEventDialog(event);
+        });
+    }
     return item;
 }
 
@@ -266,6 +289,11 @@ function mergeEvents(results) {
     return [...events.values()].sort((a, b) => new Date(a.start) - new Date(b.start));
 }
 
+function setCanWrite(value) {
+    canWrite = value;
+    addButton.hidden = !value;
+}
+
 async function loadPeriod() {
     const request = ++lastRequest;
     const start = periodStart();
@@ -280,18 +308,18 @@ async function loadPeriod() {
 
         const failed = results.find(({ response }) => !response.ok);
         if (failed) {
-            addButton.hidden = true;
+            setCanWrite(false);
             render(start, []);
             showMessage(errorMessages[failed.response.status] || failed.data.error || "Impossible de charger le calendrier");
             return;
         }
 
-        addButton.hidden = !writePermissions.has(results[0].data.calendar.permission);
+        setCanWrite(writePermissions.has(results[0].data.calendar.permission));
         render(start, mergeEvents(results));
     } catch (error) {
         console.error(error);
         if (request !== lastRequest) return;
-        addButton.hidden = true;
+        setCanWrite(false);
         render(start, []);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
     }
@@ -305,44 +333,88 @@ function setView(nextView) {
     loadPeriod();
 }
 
-function openEventDialog() {
-    eventForm.reset();
-    eventFormMessage.textContent = "";
-    eventForm.elements.date.value = toDateParam(current);
-    eventDialog.showModal();
-    eventForm.elements.title.focus();
+// Format attendu par un input datetime-local : AAAA-MM-JJTHH:MM, en heure locale
+function toInputValue(date) {
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${toDateParam(date)}T${hours}:${minutes}`;
 }
 
 // new Date(année, mois, jour, h, min) garde l'heure saisie comme une heure locale
-function localDateTime(dateValue, timeValue) {
-    const [year, month, day] = dateValue.split("-").map(Number);
-    const [hours, minutes] = timeValue.split(":").map(Number);
+function fromInputValue(value) {
+    const [date, time] = value.split("T");
+    const [year, month, day] = date.split("-").map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return new Date(year, month - 1, day, hours, minutes);
 }
 
-async function submitEvent(event) {
-    event.preventDefault();
-    const submitButton = eventForm.querySelector('button[type="submit"]');
+function openEventDialog(event = null) {
+    editedEvent = event;
+    eventForm.reset();
+    eventFormMessage.textContent = "";
+    eventDialogTitle.textContent = event ? "Modifier le rendez-vous" : "Nouveau rendez-vous";
+    submitButton.textContent = event ? "Enregistrer" : "Ajouter";
+    deleteButton.hidden = !event;
+
+    const fields = eventForm.elements;
+    if (event) {
+        fields.title.value = event.title;
+        fields.start.value = toInputValue(new Date(event.start));
+        fields.end.value = toInputValue(eventEnd(event));
+        fields.description.value = event.description ?? "";
+        // Un rappel absent de la liste serait effacé en enregistrant
+        if (event.reminderTime !== null && !fields.reminderTime.querySelector(`option[value="${event.reminderTime}"]`)) {
+            fields.reminderTime.add(new Option(`${event.reminderTime} minutes avant`, event.reminderTime));
+        }
+        fields.reminderTime.value = event.reminderTime ?? "";
+    } else {
+        const start = new Date(current);
+        start.setHours(9, 0, 0, 0);
+        fields.start.value = toInputValue(start);
+        fields.end.value = toInputValue(new Date(start.getTime() + 60 * 60 * 1000));
+    }
+
+    eventDialog.showModal();
+    fields.title.focus();
+}
+
+// Si on décale le début après la fin, la fin suit avec une heure d'écart
+function keepEndAfterStart() {
+    const fields = eventForm.elements;
+    if (!fields.start.value || !fields.end.value) return;
+
+    const start = fromInputValue(fields.start.value);
+    if (fromInputValue(fields.end.value) <= start) {
+        fields.end.value = toInputValue(new Date(start.getTime() + 60 * 60 * 1000));
+    }
+}
+
+async function submitEvent(submit) {
+    submit.preventDefault();
     const form = new FormData(eventForm);
     const title = form.get("title").trim();
     eventFormMessage.textContent = "";
 
-    if (!title || !form.get("date") || !form.get("start") || !form.get("end")) {
-        eventFormMessage.textContent = "Le titre, la date et les heures sont obligatoires";
+    if (!title || !form.get("start") || !form.get("end")) {
+        eventFormMessage.textContent = "Le titre, le début et la fin sont obligatoires";
         return;
     }
 
-    const start = localDateTime(form.get("date"), form.get("start"));
-    const end = localDateTime(form.get("date"), form.get("end"));
+    const start = fromInputValue(form.get("start"));
+    const end = fromInputValue(form.get("end"));
     if (end <= start) {
-        eventFormMessage.textContent = "L'heure de fin doit être après l'heure de début";
+        eventFormMessage.textContent = "La fin doit être après le début";
         return;
     }
+
+    const url = editedEvent
+        ? `/calendars/${encodeURIComponent(calendarId)}/events/${editedEvent.id}`
+        : `/calendars/${encodeURIComponent(calendarId)}/events`;
 
     submitButton.disabled = true;
     try {
-        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/events`, {
-            method: "POST",
+        const response = await fetch(url, {
+            method: editedEvent ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
                 start: start.toISOString(),
@@ -355,7 +427,7 @@ async function submitEvent(event) {
         const data = await response.json();
 
         if (!response.ok) {
-            eventFormMessage.textContent = data.error || "Le rendez-vous n'a pas pu être ajouté";
+            eventFormMessage.textContent = data.error || "Le rendez-vous n'a pas pu être enregistré";
             return;
         }
 
@@ -370,6 +442,33 @@ async function submitEvent(event) {
     }
 }
 
+async function deleteEvent() {
+    if (!confirm(`Supprimer « ${editedEvent.title} » ?`)) return;
+
+    deleteButton.disabled = true;
+    try {
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/events/${editedEvent.id}`, {
+            method: "DELETE",
+            headers: { "Accept": "application/json" }
+        });
+
+        // 204 : pas de corps à lire
+        if (!response.ok) {
+            const data = await response.json();
+            eventFormMessage.textContent = data.error || "Le rendez-vous n'a pas pu être supprimé";
+            return;
+        }
+
+        eventDialog.close();
+        loadPeriod();
+    } catch (error) {
+        console.error(error);
+        eventFormMessage.textContent = "Le serveur est inaccessible, réessayez plus tard";
+    } finally {
+        deleteButton.disabled = false;
+    }
+}
+
 function move(step) {
     if (view === "day") current = addDays(current, step);
     if (view === "week") current = addDays(current, 7 * step);
@@ -381,8 +480,10 @@ for (const button of viewButtons) {
     button.addEventListener("click", () => setView(button.dataset.view));
 }
 
-addButton.addEventListener("click", openEventDialog);
+addButton.addEventListener("click", () => openEventDialog());
 eventForm.addEventListener("submit", submitEvent);
+eventForm.elements.start.addEventListener("change", keepEndAfterStart);
+deleteButton.addEventListener("click", deleteEvent);
 document.querySelector("#event-cancel").addEventListener("click", () => eventDialog.close());
 
 document.querySelector("#previous-period").addEventListener("click", () => move(-1));

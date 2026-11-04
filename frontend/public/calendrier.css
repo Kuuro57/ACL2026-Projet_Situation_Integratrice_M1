@@ -284,7 +284,7 @@ button:hover {
 }
 
 dialog {
-  width: min(100% - 32px, 440px);
+  width: min(100% - 32px, 480px);
   padding: 24px;
   border: 0;
   border-radius: 12px;
@@ -312,7 +312,7 @@ dialog h2 {
 
 .form-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -325,6 +325,7 @@ input,
 select,
 textarea {
   width: 100%;
+  min-width: 0;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -355,17 +356,37 @@ textarea {
   gap: 8px;
 }
 
+.button-danger {
+  margin-right: auto;
+  background: #dc2626;
+}
+
+.button-danger:hover {
+  background: #b91c1c;
+}
+
+.event.editable,
+.month-event.editable {
+  cursor: pointer;
+}
+
+.event.editable:hover,
+.event.editable:focus-visible {
+  background: #bfdbfe;
+  outline: none;
+}
+
+.month-event.editable:hover {
+  background: #bfdbfe;
+}
+
 @media (max-width: 480px) {
   body {
     padding: 0;
   }
 
   .form-row {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .form-row .form-field:first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
   }
 
   main {
