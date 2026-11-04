@@ -187,7 +187,7 @@ function renderMonthEvent(event, day) {
     return item;
 }
 
-// Les jours du mois précédent/suivant complètent les semaines, sans leurs rdv
+// Les jours du mois précédent/suivant complètent les semaines, en grisé
 function renderMonth(firstDay, events) {
     const today = new Date();
     const gridStart = mondayOf(firstDay);
@@ -212,7 +212,7 @@ function renderMonth(firstDay, events) {
         cell.setAttribute("aria-label", dayFormat.format(day));
         cell.append(createElement("span", "month-day-number", String(day.getDate())));
 
-        const dayEvents = inMonth ? eventsOfDay(events, day) : [];
+        const dayEvents = eventsOfDay(events, day);
         for (const event of dayEvents.slice(0, MONTH_EVENTS_SHOWN)) {
             cell.append(renderMonthEvent(event, day));
         }
@@ -240,6 +240,32 @@ function render(start, events) {
     }
 }
 
+async function fetchPeriod(period, date) {
+    const params = new URLSearchParams({ date: toDateParam(date), timeZone });
+    const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/${period}?${params}`, {
+        headers: { "Accept": "application/json" }
+    });
+    return { response, data: await response.json() };
+}
+
+// La grille déborde sur les mois voisins, on demande aussi ses semaines de début et de fin
+function monthRequests(firstDay) {
+    const lastDay = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
+    const requests = [fetchPeriod("month", firstDay)];
+    if (firstDay.getDay() !== 1) requests.push(fetchPeriod("week", firstDay));
+    if (lastDay.getDay() !== 0) requests.push(fetchPeriod("week", lastDay));
+    return requests;
+}
+
+// Un rdv peut revenir dans plusieurs réponses (le mois et une semaine)
+function mergeEvents(results) {
+    const events = new Map();
+    for (const { data } of results) {
+        for (const event of data.events) events.set(event.id, event);
+    }
+    return [...events.values()].sort((a, b) => new Date(a.start) - new Date(b.start));
+}
+
 async function loadPeriod() {
     const request = ++lastRequest;
     const start = periodStart();
@@ -247,24 +273,21 @@ async function loadPeriod() {
     showMessage("");
 
     try {
-        const params = new URLSearchParams({ date: toDateParam(start), timeZone });
-        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/${view}?${params}`, {
-            headers: { "Accept": "application/json" }
-        });
-        const data = await response.json();
+        const results = await Promise.all(view === "month" ? monthRequests(start) : [fetchPeriod(view, start)]);
 
         // Réponse d'une période qu'on a déjà quittée
         if (request !== lastRequest) return;
 
-        if (!response.ok) {
+        const failed = results.find(({ response }) => !response.ok);
+        if (failed) {
             addButton.hidden = true;
             render(start, []);
-            showMessage(errorMessages[response.status] || data.error || "Impossible de charger le calendrier");
+            showMessage(errorMessages[failed.response.status] || failed.data.error || "Impossible de charger le calendrier");
             return;
         }
 
-        addButton.hidden = !writePermissions.has(data.calendar.permission);
-        render(start, data.events);
+        addButton.hidden = !writePermissions.has(results[0].data.calendar.permission);
+        render(start, mergeEvents(results));
     } catch (error) {
         console.error(error);
         if (request !== lastRequest) return;
