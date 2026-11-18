@@ -27,11 +27,12 @@ function respondToError(error, res, fallbackMessage) {
 /**
  * Crée le contrôleur des calendriers
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
+ * @param {import("../services/userService.js").UserService} userService Service des utilisateurs
  * @returns {{ create: import("express").RequestHandler, list: import("express").RequestHandler,
  * get: import("express").RequestHandler, rename: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
-export function createCalendarController(calendarService) {
+export function createCalendarController(calendarService, userService) {
     return {
         /**
          * Crée un calendrier
@@ -94,6 +95,19 @@ export function createCalendarController(calendarService) {
                 return res.status(200).json(calendar);
             } catch (error) {
                 return respondToError(error, res, "Erreur lors du renommage du calendrier.");
+            }
+        },
+
+        addUser(req, res) {
+            try {
+                const newUserId = userService.findByUsername(req.params.userName).id
+                const calendar = calendarService.addUser( req.params.calendarId, newUserId, req.params.permission);
+                return res.status(200).json(calendar);
+
+                return res.status(500)
+                
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de l'ajout d'un nouvel utilisateur.")
             }
         }
     };

@@ -21,6 +21,11 @@ const renameDialog = document.querySelector("#rename-dialog");
 const renameForm = document.querySelector("#rename-form");
 const renameFormMessage = document.querySelector("#rename-form-message");
 const renameSubmitButton = document.querySelector("#rename-submit");
+const addUserButton = document.querySelector("#add-user");
+const addUserDialog = document.querySelector("#add-user-dialog");
+const addUserForm = document.querySelector("#add-user-form");
+const addUserFormMessage = document.querySelector("#add-user-form-message");
+const addUserSubmitButton = document.querySelector("#add-user-submit");
 
 const weekdayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const rangeFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -307,11 +312,16 @@ function setCanRename(value) {
     renameButton.hidden = !value;
 }
 
+function setCanAddUser(value){
+    addUserButton.hidden = !value;
+}
+
 function showCalendar(calendar) {
     calendarName = calendar.name;
     calendarNameLabel.textContent = calendar.name;
     document.title = calendar.name;
     setCanRename(calendar.permission === ownerPermission);
+    setCanAddUser(calendar.permission === ownerPermission)
 }
 
 async function loadPeriod() {
@@ -330,6 +340,7 @@ async function loadPeriod() {
         if (failed) {
             setCanWrite(false);
             setCanRename(false);
+            setCanAddUser(false)
             render(start, []);
             showMessage(errorMessages[failed.response.status] || failed.data.error || "Impossible de charger le calendrier");
             return;
@@ -343,6 +354,7 @@ async function loadPeriod() {
         if (request !== lastRequest) return;
         setCanWrite(false);
         setCanRename(false);
+        setCanAddUser(false)
         render(start, []);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
     }
@@ -544,6 +556,49 @@ async function submitRename(submit) {
     }
 }
 
+function openUserAdditionDialog() {
+    addUserForm.reset();
+    addUserFormMessage.textContent = "";
+    const field = addUserForm.elements.name;
+    field.value = "";
+
+    addUserDialog.showModal();
+    field.focus();
+    field.select();
+}
+
+async function submitUserAddition(submit) {
+    submit.preventDefault();
+    const name = new FormData(addUserForm).get("name").trim();
+    addUserFormMessage.textContent = "";
+
+    if (!name) {
+        addUserFormMessage.textContent = "indiquez le nom d'un utilisateur";
+        return;
+    }
+
+    addUserSubmitButton.disabled = true;
+    try {
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/addUser/${name}/editeur`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            addUserFormMessage.textContent = data.error || "La personne n'a pas pu être ajoutée";
+            return;
+        }
+
+        addUserDialog.close();
+    } catch (error) {
+        console.error(error);
+        addUserFormMessage.textContent = "Le serveur est inaccessible, réessayez plus tard";
+    } finally {
+        addUserSubmitButton.disabled = false;
+    }
+}
+
 function move(step) {
     if (view === "day") current = addDays(current, step);
     if (view === "week") current = addDays(current, 7 * step);
@@ -564,6 +619,10 @@ document.querySelector("#event-cancel").addEventListener("click", () => eventDia
 renameButton.addEventListener("click", openRenameDialog);
 renameForm.addEventListener("submit", submitRename);
 document.querySelector("#rename-cancel").addEventListener("click", () => renameDialog.close());
+
+addUserButton.addEventListener("click", openUserAdditionDialog);
+addUserForm.addEventListener("submit", submitUserAddition);
+document.querySelector("#add-user-cancel").addEventListener("click", () => addUserDialog.close());
 
 document.querySelector("#previous-period").addEventListener("click", () => move(-1));
 document.querySelector("#next-period").addEventListener("click", () => move(1));

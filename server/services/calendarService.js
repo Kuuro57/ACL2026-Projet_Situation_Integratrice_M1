@@ -263,4 +263,17 @@ export class CalendarService {
             };
         });
     }
+
+        /**
+     * ajoute un utilisateur avec les droits spécifiés
+     * @param {number} calendarId Identifiant de l'agenda
+     * @param {string} userId Identifiant de l'utilisateur à ajouter
+     * @param {string} permission permissions données à l'utilisation
+     * @returns {{ id: number, name: string, permission: string }} Agenda créé avec le droit du créateur
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED si personne n'est connecté ou si le compte n'existe plus,
+     * INVALID_CALENDAR_INPUT si le nom est absent, vide ou accompagné d'autres champs
+     */
+    addUser(calendarId, newUserId, permission){
+        return this.calendarRepository.addUser(calendarId, newUserId, permission)
+    }
 }

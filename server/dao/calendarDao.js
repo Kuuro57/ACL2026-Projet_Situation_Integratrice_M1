@@ -128,4 +128,23 @@ export class CalendarDAO {
             return this.findAccess(result.lastInsertRowid, userId);
         })();
     }
+
+    addUser(calendarId, userId, permission) {
+        console.log(`calendarId : "${calendarId}"`)
+        console.log(`userId : "${userId}"`)
+        console.log(`permission : "${permission}"`)
+        return this.database.transaction(() => {
+            const link = this.database.prepare(`
+                INSERT INTO calendarUser (calendar_id, user_id, permission_id)
+                SELECT ?, ?, id FROM permissionType WHERE label = ?
+            `).run(calendarId, userId, permission);
+
+            // Sans cette vérification, une permission absente donnerait un calendrier sans membre.
+            if (link.changes === 0) {
+                throw new Error(`La permission ${permission} est absente de la table permissionType.`);
+            }
+
+            return this.findAccess(calendarId, userId);
+        })();
+    }
 }

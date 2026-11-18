@@ -13,6 +13,7 @@
       <div class="calendar-heading">
         <h1 id="calendar-name"></h1>
         <button type="button" id="rename-calendar" class="button-secondary" hidden>Renommer</button>
+        <button type="button" id="add-user" class="button-secondary" hidden>ajouter un utilisateur</button>
       </div>
 
       <header class="calendar-toolbar">
@@ -100,6 +101,24 @@
         <div class="dialog-actions">
           <button type="button" id="rename-cancel" class="button-secondary">Annuler</button>
           <button type="submit" id="rename-submit">Enregistrer</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="add-user-dialog" aria-labelledby="add-user-dialog-title">
+      <form id="add-user-form" novalidate>
+        <h2 id="add-user-dialog-title">Ajouter un utilisateur</h2>
+
+        <div class="form-field">
+          <label for="user-name">Nom de l'utilisateur</label>
+          <input id="user-name" name="name" type="text" maxlength="100" autocomplete="off" required />
+        </div>
+
+        <p id="add-user-form-message" role="alert" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button type="button" id="add-user-cancel" class="button-secondary">Annuler</button>
+          <button type="submit" id="add-user-submit">Enregistrer</button>
         </div>
       </form>
     </dialog>

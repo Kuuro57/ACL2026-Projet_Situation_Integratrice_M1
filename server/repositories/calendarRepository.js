@@ -119,4 +119,9 @@ export class CalendarRepository {
         this.calendarDao.rename(calendarId, name);
         return this.findAccess(calendarId, userId);
     }
+
+    addUser(calendarId, newUserId, permission){
+        this.calendarDao.addUser(calendarId, newUserId, permission)
+        return this.findAccess(calendarId, newUserId);
+    }
 }
