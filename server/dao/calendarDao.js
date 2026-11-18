@@ -88,6 +88,20 @@ export class CalendarDAO {
     }
 
     /**
+     * Change le nom du calendrier
+     * @param {number} calendarId Identifiant du calendrier
+     * @param {string} name Nouveau nom
+     * @returns {boolean} true si le calendrier a été trouvé et mis à jour
+     */
+    rename(calendarId, name) {
+        const result = this.database.prepare(
+            "UPDATE calendar SET name = ? WHERE id = ?"
+        ).run(name, calendarId);
+
+        return result.changes > 0;
+    }
+
+    /**
      * Ajoute le calendrier et son premier membre ensemble
      * @param {string} name Nom du calendrier
      * @param {string} userId Identifiant de l'utilisateur à rattacher

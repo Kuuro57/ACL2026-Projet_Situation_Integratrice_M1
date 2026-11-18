@@ -1,7 +1,8 @@
 import { DateTime, IANAZone } from "luxon";
 import { ApplicationError } from "../errors/applicationError.js";
 
-const readPermissions = new Set(["proprietaire", "editeur", "visiteur"]);
+const ownerPermission = "proprietaire";
+const readPermissions = new Set([ownerPermission, "editeur", "visiteur"]);
 const authorizedPeriods = {
     day: "day",
     week: "week",
@@ -61,6 +62,21 @@ function parseCalendarId(value) {
         throw invalidInput("L'identifiant du calendrier doit être un entier positif.");
     }
     return id;
+}
+
+/**
+ * Vérifie les données d'un agenda (création ou renommage) et nettoie le nom
+ * @param {*} data Données reçues dans le body
+ * @returns {{ name: string }} Données validées, avec le nom sans espaces autour
+ * @throws {ApplicationError} INVALID_CALENDAR_INPUT si le nom est absent, vide ou accompagné d'autres champs
+ */
+function parseCalendarData(data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)
+        || Object.keys(data).some(key => key !== "name")
+        || typeof data.name !== "string" || !data.name.trim()) {
+        throw invalidInput("Il faut fournir un nom d'agenda non vide, dans le champ name.");
+    }
+    return { name: data.name.trim() };
 }
 
 /**
@@ -157,15 +173,43 @@ export class CalendarService {
      */
     create(userId, data) {
         this.requireUser(userId);
-        if (!data || typeof data !== "object" || Array.isArray(data)
-            || Object.keys(data).some(key => key !== "name")
-            || typeof data.name !== "string" || !data.name.trim()) {
-            throw invalidInput("Il faut fournir un nom d'agenda non vide, dans le champ name.");
-        }
+        const calendar = parseCalendarData(data);
 
         return this.calendarRepository.transaction(() => {
             this.requireExistingUser(userId);
-            return this.calendarRepository.create(userId, { name: data.name.trim() });
+            return this.calendarRepository.create(userId, calendar);
+        }, true);
+    }
+
+    /**
+     * Renomme un agenda
+     * @param {string} userId Identifiant de l'utilisateur connecté
+     * @param {string|number} calendarId Identifiant de l'agenda
+     * @param {{ name: string }} data Nouveau nom de l'agenda
+     * @returns {{ id: number, name: string, permission: string }} Agenda renommé avec le droit de l'utilisateur
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED si personne n'est connecté ou si le compte n'existe plus,
+     * INVALID_CALENDAR_INPUT si l'identifiant ou le nom est invalide, CALENDAR_NOT_FOUND si l'agenda n'existe pas,
+     * CALENDAR_ACCESS_DENIED si l'utilisateur n'en est pas le propriétaire
+     */
+    rename(userId, calendarId, data) {
+        this.requireUser(userId);
+        const id = parseCalendarId(calendarId);
+        const { name } = parseCalendarData(data);
+
+        return this.calendarRepository.transaction(() => {
+            this.requireExistingUser(userId);
+            const calendar = this.calendarRepository.findAccess(id, userId);
+            if (!calendar) {
+                throw new ApplicationError("CALENDAR_NOT_FOUND", "Calendrier introuvable.");
+            }
+            if (calendar.permission !== ownerPermission) {
+                throw new ApplicationError(
+                    "CALENDAR_ACCESS_DENIED",
+                    "Seul le propriétaire peut renommer ce calendrier."
+                );
+            }
+
+            return this.calendarRepository.rename(id, userId, { name });
         }, true);
     }
 

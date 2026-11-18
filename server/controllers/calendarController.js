@@ -27,7 +27,8 @@ function respondToError(error, res, fallbackMessage) {
 /**
  * Crée le contrôleur des calendriers
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
- * @returns {{ create: import("express").RequestHandler, get: import("express").RequestHandler }}
+ * @returns {{ create: import("express").RequestHandler, list: import("express").RequestHandler,
+ * get: import("express").RequestHandler, rename: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
 export function createCalendarController(calendarService) {
@@ -78,6 +79,21 @@ export function createCalendarController(calendarService) {
                 return res.status(200).json(calendar);
             } catch (error) {
                 return respondToError(error, res, "Erreur lors de la récupération du calendrier.");
+            }
+        },
+
+        /**
+         * Renomme un calendrier dont l'utilisateur connecté est propriétaire
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Calendrier renommé (200) ou erreur
+         */
+        rename(req, res) {
+            try {
+                const calendar = calendarService.rename(res.locals.user?.id, req.params.calendarId, req.body);
+                return res.status(200).json(calendar);
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors du renommage du calendrier.");
             }
         }
     };

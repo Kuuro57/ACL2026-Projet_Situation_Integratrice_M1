@@ -106,4 +106,17 @@ export class CalendarRepository {
     create(userId, { name }) {
         return toCalendar(this.calendarDao.create(name, userId, "proprietaire"));
     }
+
+    /**
+     * Renomme un calendrier et le renvoie avec le droit de l'utilisateur dessus
+     * @param {number} calendarId Identifiant du calendrier
+     * @param {string} userId Identifiant de l'utilisateur
+     * @param {Object} calendar Nouvelles données du calendrier
+     * @param {string} calendar.name Nouveau nom du calendrier
+     * @returns {?{ id: number, name: string, permission: ?string }} Calendrier renommé, ou null s'il n'existe pas
+     */
+    rename(calendarId, userId, { name }) {
+        this.calendarDao.rename(calendarId, name);
+        return this.findAccess(calendarId, userId);
+    }
 }
