@@ -1,7 +1,7 @@
 :root {
   font-family: Arial, sans-serif;
-  color: #1f2937;
-  background: #f3f4f6;
+  color: #252525;
+  background: #f5f5f5;
 }
 
 * {
@@ -20,15 +20,15 @@ main {
   width: min(100%, 420px);
   padding: 32px;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+  border: 1px solid #dedede;
+  border-radius: 4px;
 }
 
 h1 {
   margin: 0 0 24px;
   text-align: center;
   font-size: 1.7rem;
+  font-weight: 600;
 }
 
 form {
@@ -49,29 +49,29 @@ label {
 input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
   font: inherit;
 }
 
 input:focus {
-  border-color: #2563eb;
-  outline: 2px solid rgb(37 99 235 / 20%);
+  border-color: #252525;
+  outline: 1px solid #252525;
 }
 
 button {
   padding: 11px 16px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   color: #ffffff;
-  background: #2563eb;
+  background: #252525;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
 button:hover {
-  background: #1d4ed8;
+  background: #444444;
 }
 
 button:disabled {
@@ -86,7 +86,7 @@ button:disabled {
 }
 
 #form-message[data-type="error"] {
-  color: #b91c1c;
+  color: #a12626;
 }
 
 #form-message[data-type="success"] {
@@ -100,7 +100,7 @@ button:disabled {
 }
 
 .form-link a {
-  color: #1d4ed8;
+  color: #252525;
   font-weight: 600;
 }
 
