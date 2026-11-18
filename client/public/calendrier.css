@@ -35,12 +35,28 @@ main {
   margin-bottom: 16px;
 }
 
-h1 {
+.calendar-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#calendar-name {
+  min-width: 0;
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+#period-label {
   margin: 0;
   font-size: 1.5rem;
 }
 
-h1::first-letter {
+#period-label::first-letter {
   text-transform: uppercase;
 }
 
@@ -299,7 +315,8 @@ dialog h2 {
   font-size: 1.25rem;
 }
 
-#event-form {
+#event-form,
+#rename-form {
   display: grid;
   gap: 14px;
 }
@@ -342,7 +359,8 @@ textarea {
   resize: vertical;
 }
 
-#event-form-message {
+#event-form-message,
+#rename-form-message {
   min-height: 1.2em;
   margin: 0;
   color: #a12626;

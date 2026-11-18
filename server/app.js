@@ -54,7 +54,7 @@ export function createApp({ database, secret }) {
 
   const frontendDirectory = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../frontend",
+    "../client",
   );
 
   app.set("view engine", "ejs");
@@ -77,6 +77,7 @@ export function createApp({ database, secret }) {
 
   app
     .post("/calendars", authenticate, calendarController.create)
+    .patch("/calendars/:calendarId", authenticate, calendarController.rename)
     .get("/calendars/:calendarId/:period", authenticate, calendarController.get)
     .get("/calendars", authenticate, calendarController.list);
 

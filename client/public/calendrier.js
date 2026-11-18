@@ -15,6 +15,12 @@ const eventFormMessage = document.querySelector("#event-form-message");
 const eventDialogTitle = document.querySelector("#event-dialog-title");
 const submitButton = document.querySelector("#event-submit");
 const deleteButton = document.querySelector("#event-delete");
+const calendarNameLabel = document.querySelector("#calendar-name");
+const renameButton = document.querySelector("#rename-calendar");
+const renameDialog = document.querySelector("#rename-dialog");
+const renameForm = document.querySelector("#rename-form");
+const renameFormMessage = document.querySelector("#rename-form-message");
+const renameSubmitButton = document.querySelector("#rename-submit");
 
 const weekdayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const rangeFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -27,7 +33,8 @@ const errorMessages = {
     403: "Vous n'avez pas accès à ce calendrier",
     404: "Ce calendrier n'existe pas"
 };
-const writePermissions = new Set(["proprietaire", "editeur"]);
+const ownerPermission = "proprietaire";
+const writePermissions = new Set([ownerPermission, "editeur"]);
 
 let view = "week";
 let current = startOfDay(new Date());
@@ -35,6 +42,7 @@ let lastRequest = 0;
 let hasScrolled = false;
 let canWrite = false;
 let editedEvent = null;
+let calendarName = "";
 
 function mondayOf(date) {
     const result = new Date(date);
@@ -294,6 +302,18 @@ function setCanWrite(value) {
     addButton.hidden = !value;
 }
 
+// Seul le propriétaire voit le bouton pour renommer l'agenda
+function setCanRename(value) {
+    renameButton.hidden = !value;
+}
+
+function showCalendar(calendar) {
+    calendarName = calendar.name;
+    calendarNameLabel.textContent = calendar.name;
+    document.title = calendar.name;
+    setCanRename(calendar.permission === ownerPermission);
+}
+
 async function loadPeriod() {
     const request = ++lastRequest;
     const start = periodStart();
@@ -309,17 +329,20 @@ async function loadPeriod() {
         const failed = results.find(({ response }) => !response.ok);
         if (failed) {
             setCanWrite(false);
+            setCanRename(false);
             render(start, []);
             showMessage(errorMessages[failed.response.status] || failed.data.error || "Impossible de charger le calendrier");
             return;
         }
 
+        showCalendar(results[0].data.calendar);
         setCanWrite(writePermissions.has(results[0].data.calendar.permission));
         render(start, mergeEvents(results));
     } catch (error) {
         console.error(error);
         if (request !== lastRequest) return;
         setCanWrite(false);
+        setCanRename(false);
         render(start, []);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
     }
@@ -469,6 +492,58 @@ async function deleteEvent() {
     }
 }
 
+function openRenameDialog() {
+    renameForm.reset();
+    renameFormMessage.textContent = "";
+    const field = renameForm.elements.name;
+    field.value = calendarName;
+
+    renameDialog.showModal();
+    field.focus();
+    field.select();
+}
+
+async function submitRename(submit) {
+    submit.preventDefault();
+    const name = new FormData(renameForm).get("name").trim();
+    renameFormMessage.textContent = "";
+
+    if (!name) {
+        renameFormMessage.textContent = "Le nom de l'agenda est obligatoire";
+        return;
+    }
+
+    // Rien à enregistrer si le nom n'a pas changé
+    if (name === calendarName) {
+        renameDialog.close();
+        return;
+    }
+
+    renameSubmitButton.disabled = true;
+    try {
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({ name })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            renameFormMessage.textContent = data.error || "L'agenda n'a pas pu être renommé";
+            return;
+        }
+
+        // On affiche le nom renvoyé par le serveur, c'est celui qui est enregistré
+        showCalendar(data);
+        renameDialog.close();
+    } catch (error) {
+        console.error(error);
+        renameFormMessage.textContent = "Le serveur est inaccessible, réessayez plus tard";
+    } finally {
+        renameSubmitButton.disabled = false;
+    }
+}
+
 function move(step) {
     if (view === "day") current = addDays(current, step);
     if (view === "week") current = addDays(current, 7 * step);
@@ -485,6 +560,10 @@ eventForm.addEventListener("submit", submitEvent);
 eventForm.elements.start.addEventListener("change", keepEndAfterStart);
 deleteButton.addEventListener("click", deleteEvent);
 document.querySelector("#event-cancel").addEventListener("click", () => eventDialog.close());
+
+renameButton.addEventListener("click", openRenameDialog);
+renameForm.addEventListener("submit", submitRename);
+document.querySelector("#rename-cancel").addEventListener("click", () => renameDialog.close());
 
 document.querySelector("#previous-period").addEventListener("click", () => move(-1));
 document.querySelector("#next-period").addEventListener("click", () => move(1));

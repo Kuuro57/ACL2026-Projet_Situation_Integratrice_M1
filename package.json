@@ -2,14 +2,14 @@
   "name": "acl2026-projet_situation_integratrice_m1",
   "version": "1.0.0",
   "description": "",
-  "main": "backend/server.js",
+  "main": "server/server.js",
   "type": "module",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "start": "node backend/server.js",
-    "test": "node --test backend/tests/*.test.js"
+    "start": "node server/server.js",
+    "test": "node --test server/tests/*.test.js"
   },
   "repository": {
     "type": "git",
