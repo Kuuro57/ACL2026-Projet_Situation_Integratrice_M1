@@ -10,8 +10,13 @@
     <main id="calendar" data-calendar-id="<%= calendarId %>">
       <a class="back-link" href="/">&larr; Mes agendas</a>
 
+      <div class="calendar-heading">
+        <h1 id="calendar-name"></h1>
+        <button type="button" id="rename-calendar" class="button-secondary" hidden>Renommer</button>
+      </div>
+
       <header class="calendar-toolbar">
-        <h1 id="period-label"></h1>
+        <h2 id="period-label"></h2>
 
         <div class="view-switch" role="group" aria-label="Choisir la vue">
           <button type="button" data-view="day" aria-pressed="false">Jour</button>
@@ -77,6 +82,24 @@
           <button type="button" id="event-delete" class="button-danger" hidden>Supprimer</button>
           <button type="button" id="event-cancel" class="button-secondary">Annuler</button>
           <button type="submit" id="event-submit">Ajouter</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="rename-dialog" aria-labelledby="rename-dialog-title">
+      <form id="rename-form" novalidate>
+        <h2 id="rename-dialog-title">Renommer l'agenda</h2>
+
+        <div class="form-field">
+          <label for="calendar-new-name">Nom de l'agenda</label>
+          <input id="calendar-new-name" name="name" type="text" maxlength="100" autocomplete="off" required />
+        </div>
+
+        <p id="rename-form-message" role="alert" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button type="button" id="rename-cancel" class="button-secondary">Annuler</button>
+          <button type="submit" id="rename-submit">Enregistrer</button>
         </div>
       </form>
     </dialog>
