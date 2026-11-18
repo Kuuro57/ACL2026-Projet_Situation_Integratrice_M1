@@ -13,13 +13,13 @@ Le backend suit la chaîne `Controller → Service → Repository → DAO → SQ
 
 | Dossier | Responsabilité |
 | --- | --- |
-| `backend/controllers/` | Lire la requête HTTP, appeler un service et produire la réponse (statut, JSON, cookie). |
-| `backend/services/` | Appliquer la logique métier : validation, UUID, hash des mots de passe et JWT. |
-| `backend/repositories/` | Convertir les données de stockage en objets utilisateur et traduire les conflits de données. |
-| `backend/dao/` | Exécuter les requêtes SQL paramétrées. |
-| `backend/database/` | Ouvrir et initialiser la base SQLite. |
+| `server/controllers/` | Lire la requête HTTP, appeler un service et produire la réponse (statut, JSON, cookie). |
+| `server/services/` | Appliquer la logique métier : validation, UUID, hash des mots de passe et JWT. |
+| `server/repositories/` | Convertir les données de stockage en objets utilisateur et traduire les conflits de données. |
+| `server/dao/` | Exécuter les requêtes SQL paramétrées. |
+| `server/database/` | Ouvrir et initialiser la base SQLite. |
 
-`backend/app.js` assemble les couches et déclare les routes. `backend/server.js` charge la configuration et démarre l'écoute HTTP. Les dépendances sont passées aux constructeurs pour pouvoir utiliser une base SQLite en mémoire dans les tests.
+`server/app.js` assemble les couches et déclare les routes. `server/server.js` charge la configuration et démarre l'écoute HTTP. Les dépendances sont passées aux constructeurs pour pouvoir utiliser une base SQLite en mémoire dans les tests.
 
 ### Lancer le projet
 
@@ -133,4 +133,4 @@ On utilise Argon2id côté serveur, recommandé aujourd'hui pour stocker les mot
 npm test
 ```
 
-Les tests utilisent SQLite en mémoire et ne modifient pas `backend/database/app.db`.
+Les tests utilisent SQLite en mémoire et ne modifient pas `server/database/app.db`.
