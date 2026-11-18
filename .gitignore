@@ -26,7 +26,7 @@ replay_pid*
 # Modules NPM
 node_modules/
 # Base de données SQLite locale
-backend/database/*.db
+server/database/*.db
 
 # Variables d'environnement
 .env

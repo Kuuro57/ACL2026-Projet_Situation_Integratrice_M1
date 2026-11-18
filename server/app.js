@@ -54,7 +54,7 @@ export function createApp({ database, secret }) {
 
   const frontendDirectory = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../frontend",
+    "../client",
   );
 
   app.set("view engine", "ejs");
