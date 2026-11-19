@@ -132,4 +132,15 @@ export class CalendarRepository {
         this.calendarDao.addUser(calendarId, newUserId, permission)
         return this.findAccess(calendarId, newUserId);
     }
+
+    /**
+     * Renvoie le calendrier et le droit de cet utilisateur
+     * @param {number} calendarId Identifiant du calendrier
+     * @param {string} userId Identifiant de l'utilisateur
+     * @returns {{ id: number, name: string, permission: ?string } | undefined}
+     * La ligne trouvée (permission vaut null si l'utilisateur n'est pas membre), ou undefined
+     */
+    findAccess(calendarId, userId) {
+        return this.calendarDao.findAccess(calendarId, userId)
+    }
 }

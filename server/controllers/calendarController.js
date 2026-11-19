@@ -6,7 +6,8 @@ const errorStatuses = {
     AUTHENTICATION_REQUIRED: 401,
     CALENDAR_ACCESS_DENIED: 403,
     CALENDAR_NOT_FOUND: 404,
-    USER_NOT_FOUND: 404
+    USER_NOT_FOUND: 404,
+    USER_ALREADY_ADDED: 403
 };
 
 /**
@@ -105,6 +106,10 @@ export function createCalendarController(calendarService, userService) {
                 const newUser = userService.findByUsername(req.params.userName)
                 if(newUser == null){
                     throw new ApplicationError("USER_NOT_FOUND", "utilisateur introuvable.");
+                }
+                const calendarPermission = calendarService.findAccess(req.params.calendarId, newUser.id)
+                if (calendarPermission && calendarPermission.permission != null) {
+                    throw new ApplicationError("USER_ALREADY_ADDED", "utilisateur déjà ajouté.");
                 }
 
                 const calendar = calendarService.addUser( req.params.calendarId, newUser.id, req.params.permission);
