@@ -1,10 +1,12 @@
 import { ApplicationError } from "../errors/applicationError.js";
+import createError from "http-errors";
 
 const errorStatuses = {
     INVALID_CALENDAR_INPUT: 400,
     AUTHENTICATION_REQUIRED: 401,
     CALENDAR_ACCESS_DENIED: 403,
-    CALENDAR_NOT_FOUND: 404
+    CALENDAR_NOT_FOUND: 404,
+    USER_NOT_FOUND: 404
 };
 
 /**
@@ -100,11 +102,13 @@ export function createCalendarController(calendarService, userService) {
 
         addUser(req, res) {
             try {
-                const newUserId = userService.findByUsername(req.params.userName).id
-                const calendar = calendarService.addUser( req.params.calendarId, newUserId, req.params.permission);
-                return res.status(200).json(calendar);
+                const newUser = userService.findByUsername(req.params.userName)
+                if(newUser == null){
+                    throw new ApplicationError("USER_NOT_FOUND", "utilisateur introuvable.");
+                }
 
-                return res.status(500)
+                const calendar = calendarService.addUser( req.params.calendarId, newUser.id, req.params.permission);
+                return res.status(200).json(calendar);
                 
             } catch (error) {
                 return respondToError(error, res, "Erreur lors de l'ajout d'un nouvel utilisateur.")
