@@ -120,6 +120,14 @@ export class CalendarRepository {
         return this.findAccess(calendarId, userId);
     }
 
+      /**
+     * ajoute un utilisateur à un calendrier avec le type de permission donné
+     * @param {number} calendarId Identifiant du calendrier
+     * @param {string} userId Identifiant de l'utilisateur à rattacher
+     * @param {string} permission Label de la permission donnée à cet utilisateur
+     * @returns {{ id: number, name: string, permission: string }} Le calendrier créé avec le droit de l'utilisateur
+     * @throws {Error} Si la permission n'existe pas dans permissionType
+     */
     addUser(calendarId, newUserId, permission){
         this.calendarDao.addUser(calendarId, newUserId, permission)
         return this.findAccess(calendarId, newUserId);
