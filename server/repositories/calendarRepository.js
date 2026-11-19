@@ -120,27 +120,19 @@ export class CalendarRepository {
         return this.findAccess(calendarId, userId);
     }
 
-      /**
-     * ajoute un utilisateur à un calendrier avec le type de permission donné
+    /**
+     * Ajoute un utilisateur à un calendrier avec le type de permission donné
      * @param {number} calendarId Identifiant du calendrier
-     * @param {string} userId Identifiant de l'utilisateur à rattacher
+     * @param {string} newUserId Identifiant de l'utilisateur à rattacher
      * @param {string} permission Label de la permission donnée à cet utilisateur
-     * @returns {{ id: number, name: string, permission: string }} Le calendrier créé avec le droit de l'utilisateur
+     * @returns {?{ id: number, name: string, permission: ?string }} Le calendrier avec le droit du nouvel utilisateur
      * @throws {Error} Si la permission n'existe pas dans permissionType
      */
-    addUser(calendarId, newUserId, permission){
-        this.calendarDao.addUser(calendarId, newUserId, permission)
+    addUser(calendarId, newUserId, permission) {
+        const link = this.calendarDao.addUser(calendarId, newUserId, permission);
+        if (link.changes === 0) {
+            throw new Error(`La permission ${permission} est absente de la table permissionType.`);
+        }
         return this.findAccess(calendarId, newUserId);
-    }
-
-    /**
-     * Renvoie le calendrier et le droit de cet utilisateur
-     * @param {number} calendarId Identifiant du calendrier
-     * @param {string} userId Identifiant de l'utilisateur
-     * @returns {{ id: number, name: string, permission: ?string } | undefined}
-     * La ligne trouvée (permission vaut null si l'utilisateur n'est pas membre), ou undefined
-     */
-    findAccess(calendarId, userId) {
-        return this.calendarDao.findAccess(calendarId, userId)
     }
 }

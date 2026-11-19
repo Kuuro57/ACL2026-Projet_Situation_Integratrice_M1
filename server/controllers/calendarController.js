@@ -1,5 +1,4 @@
 import { ApplicationError } from "../errors/applicationError.js";
-import createError from "http-errors";
 
 const errorStatuses = {
     INVALID_CALENDAR_INPUT: 400,
@@ -7,11 +6,11 @@ const errorStatuses = {
     CALENDAR_ACCESS_DENIED: 403,
     CALENDAR_NOT_FOUND: 404,
     USER_NOT_FOUND: 404,
-    USER_ALREADY_ADDED: 403
+    USER_ALREADY_ADDED: 409
 };
 
 /**
- * Traduit les erreurs connues en codes HTTP (400, 401, 403, 404)
+ * Traduit les erreurs connues en codes HTTP (400, 401, 403, 404, 409)
  * @param {Error} error Erreur levée
  * @param {import("express").Response} res Réponse
  * @param {string} fallbackMessage Message renvoyé au client si l'erreur est imprévue
@@ -32,7 +31,8 @@ function respondToError(error, res, fallbackMessage) {
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
  * @param {import("../services/userService.js").UserService} userService Service des utilisateurs
  * @returns {{ create: import("express").RequestHandler, list: import("express").RequestHandler,
- * get: import("express").RequestHandler, rename: import("express").RequestHandler }}
+ * get: import("express").RequestHandler, rename: import("express").RequestHandler,
+ * addUser: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
 export function createCalendarController(calendarService, userService) {
@@ -101,22 +101,21 @@ export function createCalendarController(calendarService, userService) {
             }
         },
 
+        /**
+         * Partage un calendrier dont l'utilisateur connecté est propriétaire
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Calendrier avec le droit du nouvel utilisateur (200) ou erreur
+         */
         addUser(req, res) {
             try {
-                const newUser = userService.findByUsername(req.params.userName)
-                if(newUser == null){
-                    throw new ApplicationError("USER_NOT_FOUND", "utilisateur introuvable.");
-                }
-                const calendarPermission = calendarService.findAccess(req.params.calendarId, newUser.id)
-                if (calendarPermission && calendarPermission.permission != null) {
-                    throw new ApplicationError("USER_ALREADY_ADDED", "utilisateur déjà ajouté.");
-                }
-
-                const calendar = calendarService.addUser( req.params.calendarId, newUser.id, req.params.permission);
+                const newUser = userService.findByUsername(req.params.userName);
+                const calendar = calendarService.addUser(
+                    res.locals.user?.id, req.params.calendarId, newUser?.id ?? null, req.params.permission
+                );
                 return res.status(200).json(calendar);
-                
             } catch (error) {
-                return respondToError(error, res, "Erreur lors de l'ajout d'un nouvel utilisateur.")
+                return respondToError(error, res, "Erreur lors de l'ajout d'un nouvel utilisateur.");
             }
         }
     };

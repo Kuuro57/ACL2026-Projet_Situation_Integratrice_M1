@@ -579,7 +579,7 @@ async function submitUserAddition(submit) {
 
     addUserSubmitButton.disabled = true;
     try {
-        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/addUser/${name}/editeur`, {
+        const response = await fetch(`/calendars/${encodeURIComponent(calendarId)}/addUser/${encodeURIComponent(name)}/editeur`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
         });

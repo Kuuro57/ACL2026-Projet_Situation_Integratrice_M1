@@ -115,7 +115,7 @@ export class CalendarDAO {
                 "INSERT INTO calendar (name) VALUES (?)"
             ).run(name);
 
-            const link = this.addUser(result.lastInsertRowid, userId, permission)
+            const link = this.addUser(result.lastInsertRowid, userId, permission);
 
             // Sans cette vérification, une permission absente donnerait un calendrier sans membre.
             if (link.changes === 0) {
@@ -126,22 +126,17 @@ export class CalendarDAO {
         })();
     }
 
-        /**
+    /**
      * Ajoute un utilisateur à un calendrier avec le type de permission donné
      * @param {number} calendarId Identifiant du calendrier
      * @param {string} userId Identifiant de l'utilisateur à rattacher
      * @param {string} permission Label de la permission donnée à cet utilisateur
-     * @returns {{ id: number, name: string, permission: string }} Le calendrier créé avec le droit de l'utilisateur
-     * @throws {Error} Si la permission n'existe pas dans permissionType
+     * @returns {import("better-sqlite3").RunResult} Résultat de l'insertion (changes vaut 0 si la permission est inconnue)
      */
     addUser(calendarId, userId, permission) {
-        return this.database.transaction(() => {
-            this.database.prepare(`
-                INSERT INTO calendarUser (calendar_id, user_id, permission_id)
-                SELECT ?, ?, id FROM permissionType WHERE label = ?
-            `).run(calendarId, userId, permission);
-
-            return this.findAccess(calendarId, userId);
-        })();
+        return this.database.prepare(`
+            INSERT INTO calendarUser (calendar_id, user_id, permission_id)
+            SELECT ?, ?, id FROM permissionType WHERE label = ?
+        `).run(calendarId, userId, permission);
     }
 }
