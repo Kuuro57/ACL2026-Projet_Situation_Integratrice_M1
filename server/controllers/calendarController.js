@@ -4,11 +4,13 @@ const errorStatuses = {
     INVALID_CALENDAR_INPUT: 400,
     AUTHENTICATION_REQUIRED: 401,
     CALENDAR_ACCESS_DENIED: 403,
-    CALENDAR_NOT_FOUND: 404
+    CALENDAR_NOT_FOUND: 404,
+    USER_NOT_FOUND: 404,
+    USER_ALREADY_ADDED: 409
 };
 
 /**
- * Traduit les erreurs connues en codes HTTP (400, 401, 403, 404)
+ * Traduit les erreurs connues en codes HTTP (400, 401, 403, 404, 409)
  * @param {Error} error Erreur levée
  * @param {import("express").Response} res Réponse
  * @param {string} fallbackMessage Message renvoyé au client si l'erreur est imprévue
@@ -27,11 +29,13 @@ function respondToError(error, res, fallbackMessage) {
 /**
  * Crée le contrôleur des calendriers
  * @param {import("../services/calendarService.js").CalendarService} calendarService Service des calendriers
+ * @param {import("../services/userService.js").UserService} userService Service des utilisateurs
  * @returns {{ create: import("express").RequestHandler, list: import("express").RequestHandler,
- * get: import("express").RequestHandler, rename: import("express").RequestHandler }}
+ * get: import("express").RequestHandler, rename: import("express").RequestHandler,
+ * addUser: import("express").RequestHandler }}
  * Les handlers des routes calendrier
  */
-export function createCalendarController(calendarService) {
+export function createCalendarController(calendarService, userService) {
     return {
         /**
          * Crée un calendrier
@@ -94,6 +98,24 @@ export function createCalendarController(calendarService) {
                 return res.status(200).json(calendar);
             } catch (error) {
                 return respondToError(error, res, "Erreur lors du renommage du calendrier.");
+            }
+        },
+
+        /**
+         * Partage un calendrier dont l'utilisateur connecté est propriétaire
+         * @param {import("express").Request} req Requête
+         * @param {import("express").Response} res Réponse
+         * @returns {import("express").Response} Calendrier avec le droit du nouvel utilisateur (200) ou erreur
+         */
+        addUser(req, res) {
+            try {
+                const newUser = userService.findByUsername(req.params.userName);
+                const calendar = calendarService.addUser(
+                    res.locals.user?.id, req.params.calendarId, newUser?.id ?? null, req.params.permission
+                );
+                return res.status(200).json(calendar);
+            } catch (error) {
+                return respondToError(error, res, "Erreur lors de l'ajout d'un nouvel utilisateur.");
             }
         }
     };

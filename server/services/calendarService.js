@@ -3,6 +3,7 @@ import { ApplicationError } from "../errors/applicationError.js";
 
 const ownerPermission = "proprietaire";
 const readPermissions = new Set([ownerPermission, "editeur", "visiteur"]);
+const sharePermissions = new Set(["editeur", "visiteur"]);
 const authorizedPeriods = {
     day: "day",
     week: "week",
@@ -262,5 +263,47 @@ export class CalendarService {
                 events: this.calendarRepository.findEvents(id, period.start, period.end)
             };
         });
+    }
+
+    /**
+     * Partage un agenda avec un autre utilisateur
+     * Seul le propriétaire peut partager, et uniquement en editeur ou visiteur
+     * @param {string} userId Identifiant de l'utilisateur connecté (propriétaire)
+     * @param {string|number} calendarId Identifiant de l'agenda
+     * @param {?string} newUserId Identifiant de l'utilisateur à ajouter (null s'il est introuvable)
+     * @param {string} permission Droit donné au nouvel utilisateur (editeur ou visiteur)
+     * @returns {{ id: number, name: string, permission: string }} Agenda avec le droit du nouvel utilisateur
+     * @throws {ApplicationError} AUTHENTICATION_REQUIRED, INVALID_CALENDAR_INPUT si l'id ou la permission est invalide,
+     * CALENDAR_NOT_FOUND, CALENDAR_ACCESS_DENIED si l'utilisateur connecté n'est pas propriétaire,
+     * USER_NOT_FOUND si l'utilisateur à ajouter n'existe pas, USER_ALREADY_ADDED s'il est déjà membre
+     */
+    addUser(userId, calendarId, newUserId, permission) {
+        this.requireUser(userId);
+        const id = parseCalendarId(calendarId);
+        if (!sharePermissions.has(permission)) {
+            throw invalidInput("La permission doit être editeur ou visiteur.");
+        }
+
+        return this.calendarRepository.transaction(() => {
+            this.requireExistingUser(userId);
+            const calendar = this.calendarRepository.findAccess(id, userId);
+            if (!calendar) {
+                throw new ApplicationError("CALENDAR_NOT_FOUND", "Calendrier introuvable.");
+            }
+            if (calendar.permission !== ownerPermission) {
+                throw new ApplicationError(
+                    "CALENDAR_ACCESS_DENIED",
+                    "Seul le propriétaire peut partager ce calendrier."
+                );
+            }
+            if (!newUserId || !this.calendarRepository.userExists(newUserId)) {
+                throw new ApplicationError("USER_NOT_FOUND", "Utilisateur introuvable.");
+            }
+            if (this.calendarRepository.findAccess(id, newUserId)?.permission != null) {
+                throw new ApplicationError("USER_ALREADY_ADDED", "Cet utilisateur a déjà accès au calendrier.");
+            }
+
+            return this.calendarRepository.addUser(id, newUserId, permission);
+        }, true);
     }
 }
