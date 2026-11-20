@@ -1,0 +1,15 @@
+id,fonctionnalité,priorité,sprint,difficulté
+1,Connecter automatiquement l’utilisateur lors de la création d’un compte,1,4,1/5
+2,Zone “Mes agendas” et “Agendas partagés”,1,4,1/5
+3,Agenda par défaut à la création d’un compte,1,4,1/5
+4,Ajouter un RDV en cliquant sur un endroit de l’agenda (par exemple de 14h à 15h),3,4,1/5
+5,Supprimer agenda,1,4,1/5
+6,Visualisation d’événements sous forme de liste cliquable (pour le filtrage),2,4,2/5
+7,Filtre de recherche par texte,3,4,2/5
+8,Filtre de recherche par agenda,5,4,2/5
+9,Panel de gestion des rôles des utilisateurs partagé,1,4,2/5
+10,Gestion des chevauchements des RDV,1,4,2/5
+11,Log et vision de l’historique des modifications d’agendas,3,4,3/5
+12,Export/Import agenda en .ics,7,4,2/5
+13,Visualisation de plusieurs agendas à la fois,1,4,3/5
+14,Rendez-vous récurrent,7,4,5/5
