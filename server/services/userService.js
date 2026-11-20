@@ -152,4 +152,8 @@ export class UserService {
 
         return authenticatedUser;
     }
+
+    findByUsername(userName) {
+        return this.userRepository.findByUsername(userName)
+    }
 }

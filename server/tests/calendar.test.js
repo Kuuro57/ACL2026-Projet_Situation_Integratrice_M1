@@ -229,3 +229,95 @@ test("calendar creation still validates and trims the name", async t => {
     assert.equal(data.name, "Travail");
     assert.equal(data.permission, "proprietaire");
 });
+
+// Nombre de membres d'un calendrier, pour vérifier qu'un partage refusé n'écrit rien
+function memberCount(database, calendarId) {
+    return database.prepare("SELECT COUNT(*) AS count FROM calendarUser WHERE calendar_id = ?").get(calendarId).count;
+}
+
+test("the owner can share a calendar and the new member sees it", async t => {
+    const { request, signUp, createCalendar } = await fixture(t);
+    const owner = await signUp("owner");
+    const friend = await signUp("friend");
+    const calendar = await createCalendar(owner);
+
+    const { response, data } = await request(`/calendars/${calendar.id}/addUser/friend/editeur`, {
+        method: "POST", cookie: owner.cookie
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(data, { id: calendar.id, name: "Agenda initial", permission: "editeur" });
+
+    const list = await request("/calendars", { cookie: friend.cookie });
+    assert.deepEqual(list.data.map(c => c.id), [calendar.id]);
+});
+
+test("sharing with an unknown or already added user returns a clear error", async t => {
+    const { database, request, signUp, createCalendar } = await fixture(t);
+    const owner = await signUp("owner");
+    await signUp("friend");
+    const calendar = await createCalendar(owner);
+
+    const unknown = await request(`/calendars/${calendar.id}/addUser/ghost/editeur`, {
+        method: "POST", cookie: owner.cookie
+    });
+    assert.equal(unknown.response.status, 404);
+    assert.equal(unknown.data.error, "Utilisateur introuvable.");
+
+    await request(`/calendars/${calendar.id}/addUser/friend/visiteur`, { method: "POST", cookie: owner.cookie });
+    for (const name of ["friend", "owner"]) {
+        const again = await request(`/calendars/${calendar.id}/addUser/${name}/editeur`, {
+            method: "POST", cookie: owner.cookie
+        });
+        assert.equal(again.response.status, 409, `Unexpected status for ${name}`);
+    }
+    assert.equal(memberCount(database, calendar.id), 2);
+});
+
+test("only the owner can share a calendar", async t => {
+    const { database, request, signUp, createCalendar, addMember } = await fixture(t);
+    const owner = await signUp("owner");
+    const editor = await signUp("editor");
+    const outsider = await signUp("outsider");
+    await signUp("target");
+    const calendar = await createCalendar(owner);
+    addMember(calendar.id, editor.id, "editeur");
+
+    for (const user of [editor, outsider]) {
+        const { response } = await request(`/calendars/${calendar.id}/addUser/target/editeur`, {
+            method: "POST", cookie: user.cookie
+        });
+        assert.equal(response.status, 403);
+    }
+    assert.equal(memberCount(database, calendar.id), 2);
+});
+
+test("sharing rejects invalid permissions, unknown calendars and malformed ids", async t => {
+    const { database, request, signUp, createCalendar } = await fixture(t);
+    const owner = await signUp("owner");
+    await signUp("friend");
+    const calendar = await createCalendar(owner);
+
+    for (const permission of ["proprietaire", "nimporte"]) {
+        const { response } = await request(`/calendars/${calendar.id}/addUser/friend/${permission}`, {
+            method: "POST", cookie: owner.cookie
+        });
+        assert.equal(response.status, 400, `Unexpected status for ${permission}`);
+    }
+    assert.equal(memberCount(database, calendar.id), 1);
+
+    const unknown = await request("/calendars/999/addUser/friend/editeur", { method: "POST", cookie: owner.cookie });
+    assert.equal(unknown.response.status, 404);
+    const malformed = await request("/calendars/abc/addUser/friend/editeur", { method: "POST", cookie: owner.cookie });
+    assert.equal(malformed.response.status, 400);
+});
+
+test("a username with special characters can be shared when encoded", async t => {
+    const { request, signUp, createCalendar } = await fixture(t);
+    const owner = await signUp("owner");
+    const calendar = await createCalendar(owner);
+
+    const { response } = await request(`/calendars/${calendar.id}/addUser/${encodeURIComponent("a/b?c")}/editeur`, {
+        method: "POST", cookie: owner.cookie
+    });
+    assert.equal(response.status, 404);
+});

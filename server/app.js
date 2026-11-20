@@ -44,7 +44,7 @@ export function createApp({ database, secret }) {
   const calendarDao = new CalendarDAO(database);
   const calendarRepository = new CalendarRepository(calendarDao);
   const calendarService = new CalendarService(calendarRepository);
-  const calendarController = createCalendarController(calendarService);
+  const calendarController = createCalendarController(calendarService, userService);
   const pageController = createPageController(userService, calendarRepository);
 
   const app = express();
@@ -76,6 +76,7 @@ export function createApp({ database, secret }) {
     .get("/users/me", authenticate, userController.me);
 
   app
+    .post("/calendars/:calendarId/addUser/:userName/:permission", authenticate, calendarController.addUser)
     .post("/calendars", authenticate, calendarController.create)
     .patch("/calendars/:calendarId", authenticate, calendarController.rename)
     .get("/calendars/:calendarId/:period", authenticate, calendarController.get)
