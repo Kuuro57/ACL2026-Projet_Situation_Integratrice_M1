@@ -2,10 +2,16 @@ const signedOutPanel = document.querySelector("#signed-out-panel");
 const signedInPanel = document.querySelector("#signed-in-panel");
 const navigation = document.querySelector("#menu-navigation");
 const userLabel = document.querySelector("#menu-user");
-const calendarList = document.querySelector("#calendar-list");
+const ownedCalendarList = document.querySelector("#owned-calendar-list");
+const ownedCalendarsEmpty = document.querySelector("#owned-calendars-empty");
+const sharedCalendarList = document.querySelector("#shared-calendar-list");
+const sharedCalendarsEmpty = document.querySelector("#shared-calendars-empty");
 const message = document.querySelector("#menu-message");
 const errorMessage = document.querySelector("#menu-error");
 const logoutButton = document.querySelector("#logout-button");
+
+// Un agenda dont l'utilisateur est propriétaire va dans « Mes agendas », les autres dans « Agendas partagés »
+const ownerPermission = "proprietaire";
 
 function showSignedOut() {
   signedInPanel.hidden = true;
@@ -24,6 +30,24 @@ function showSignedIn(user) {
   logoutButton.hidden = false;
 }
 
+function createCalendarItem(calendar) {
+  const item = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "calendar-button";
+  link.textContent = calendar.name;
+  link.dataset.calendarId = calendar.id;
+  link.href = `/calendarview/${calendar.id}`;
+  item.append(link);
+  return item;
+}
+
+// Remplit la liste d'une zone, ou affiche son message si elle est vide
+function renderCalendarSection(list, emptyMessage, calendars) {
+  list.replaceChildren(...calendars.map(createCalendarItem));
+  list.hidden = calendars.length === 0;
+  emptyMessage.hidden = calendars.length > 0;
+}
+
 async function loadCalendars() {
   const response = await fetch("/calendars", {
     headers: { Accept: "application/json" },
@@ -34,32 +58,13 @@ async function loadCalendars() {
     throw new Error(calendars.error || "Impossible de charger les agendas.");
   }
 
-  calendarList.replaceChildren();
-  if (calendars.length === 0) {
-    message.textContent = "Aucun agenda accessible pour le moment.";
-    return;
-  }
+  // Le serveur trie déjà par nom et filter garde cet ordre
+  const ownedCalendars = calendars.filter((calendar) => calendar.permission === ownerPermission);
+  const sharedCalendars = calendars.filter((calendar) => calendar.permission !== ownerPermission);
 
   message.textContent = "";
-  for (const calendar of calendars) {
-    const item = document.createElement("li");
-    /*const button = document.createElement("button");
-    button.type = "button";
-    button.className = "calendar-button";
-    button.textContent = calendar.name;
-    button.dataset.calendarId = calendar.id;
-    button.addEventListener("click", () => {
-      message.textContent = "La page de visualisation de cet agenda n’est pas encore disponible.";
-    });*/
-    const button = document.createElement("a")
-    button.type = "anchor"
-    button.className = "calendar-button";
-    button.textContent = calendar.name;
-    button.dataset.calendarId = calendar.id;
-    button.href =`/calendarview/${calendar.id}`
-    item.append(button);
-    calendarList.append(item);
-  }
+  renderCalendarSection(ownedCalendarList, ownedCalendarsEmpty, ownedCalendars);
+  renderCalendarSection(sharedCalendarList, sharedCalendarsEmpty, sharedCalendars);
 }
 
 async function initializeMenu() {

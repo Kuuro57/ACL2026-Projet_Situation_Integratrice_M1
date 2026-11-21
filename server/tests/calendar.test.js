@@ -96,6 +96,28 @@ test("the owner can rename a calendar, with surrounding spaces removed", async t
     assert.deepEqual(list.data, [data]);
 });
 
+// La liste donne le droit de l'utilisateur sur chaque calendrier : le menu s'en sert pour séparer ses agendas des agendas partagés
+test("the calendar list gives the user's permission on owned and shared calendars", async t => {
+    const { request, signUp, createCalendar, addMember } = await fixture(t);
+    const alice = await signUp("alice");
+    const bob = await signUp("bob");
+    const own = await createCalendar(alice, "Perso");
+    const edited = await createCalendar(bob, "Equipe");
+    const visited = await createCalendar(bob, "Famille");
+    await createCalendar(bob, "Prive");
+    addMember(edited.id, alice.id, "editeur");
+    addMember(visited.id, alice.id, "visiteur");
+
+    const { response, data } = await request("/calendars", { cookie: alice.cookie });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(data, [
+        { id: edited.id, name: "Equipe", permission: "editeur" },
+        { id: visited.id, name: "Famille", permission: "visiteur" },
+        { id: own.id, name: "Perso", permission: "proprietaire" }
+    ]);
+});
+
 // Un éditeur, un visiteur ou un non-membre ne peuvent pas renommer : le nom ne change pas
 test("editors, visitors and non-members cannot rename a calendar", async t => {
     const { request, signUp, createCalendar, addMember, storedName } = await fixture(t);

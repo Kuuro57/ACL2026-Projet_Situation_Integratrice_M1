@@ -31,9 +31,19 @@
       </section>
 
       <section id="signed-in-panel" hidden>
-        <h1>Mes agendas</h1>
         <p id="menu-message" role="status" aria-live="polite"></p>
-        <ul id="calendar-list" class="calendar-list"></ul>
+
+        <section class="calendar-section" aria-labelledby="owned-calendars-title">
+          <h2 id="owned-calendars-title">Mes agendas</h2>
+          <p id="owned-calendars-empty" class="section-empty" hidden>Vous n’avez encore créé aucun agenda.</p>
+          <ul id="owned-calendar-list" class="calendar-list"></ul>
+        </section>
+
+        <section class="calendar-section" aria-labelledby="shared-calendars-title">
+          <h2 id="shared-calendars-title">Agendas partagés</h2>
+          <p id="shared-calendars-empty" class="section-empty" hidden>Aucun agenda n’a été partagé avec vous.</p>
+          <ul id="shared-calendar-list" class="calendar-list"></ul>
+        </section>
       </section>
 
       <p id="menu-error" class="menu-error" role="alert" aria-live="polite"></p>
