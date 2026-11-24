@@ -3,7 +3,9 @@ const signedInPanel = document.querySelector("#signed-in-panel");
 const navigation = document.querySelector("#menu-navigation");
 const userLabel = document.querySelector("#menu-user");
 const ownedCalendarList = document.querySelector("#owned-calendar-list");
-const ownedCalendarsEmpty = document.querySelector("#owned-calendars-empty");
+const firstCalendarForm = document.querySelector("#first-calendar-form");
+const firstCalendarInput = document.querySelector("#first-calendar-name");
+const firstCalendarMessage = document.querySelector("#first-calendar-message");
 const sharedCalendarList = document.querySelector("#shared-calendar-list");
 const sharedCalendarsEmpty = document.querySelector("#shared-calendars-empty");
 const message = document.querySelector("#menu-message");
@@ -41,7 +43,7 @@ function createCalendarItem(calendar) {
   return item;
 }
 
-// Remplit la liste d'une zone, ou affiche son message si elle est vide
+// Remplit la liste d'une zone, ou affiche son contenu de remplacement si elle est vide
 function renderCalendarSection(list, emptyMessage, calendars) {
   list.replaceChildren(...calendars.map(createCalendarItem));
   list.hidden = calendars.length === 0;
@@ -63,7 +65,8 @@ async function loadCalendars() {
   const sharedCalendars = calendars.filter((calendar) => calendar.permission !== ownerPermission);
 
   message.textContent = "";
-  renderCalendarSection(ownedCalendarList, ownedCalendarsEmpty, ownedCalendars);
+  // Sans agenda à lui, l'utilisateur est invité à nommer son premier agenda
+  renderCalendarSection(ownedCalendarList, firstCalendarForm, ownedCalendars);
   renderCalendarSection(sharedCalendarList, sharedCalendarsEmpty, sharedCalendars);
 }
 
@@ -89,6 +92,41 @@ async function initializeMenu() {
     errorMessage.textContent = error.message || "Le serveur est inaccessible. Réessayez plus tard.";
   }
 }
+
+firstCalendarForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submitButton = firstCalendarForm.querySelector('button[type="submit"]');
+  firstCalendarMessage.textContent = "";
+
+  const name = firstCalendarInput.value.trim();
+  if (!name) {
+    firstCalendarMessage.textContent = "Le nom de l’agenda est requis.";
+    return;
+  }
+
+  submitButton.disabled = true;
+  try {
+    const response = await fetch("/calendars", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ name }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "La création de l’agenda a échoué.");
+    }
+
+    await loadCalendars();
+  } catch (error) {
+    firstCalendarMessage.textContent = error.message || "Le serveur est inaccessible. Réessayez plus tard.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});
 
 logoutButton.addEventListener("click", async () => {
   logoutButton.disabled = true;
