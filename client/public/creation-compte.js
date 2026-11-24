@@ -51,8 +51,17 @@ form.addEventListener("submit", async (event) => {
             return;
         }
 
-        form.reset();
-        showMessage(`Compte créé pour ${data.username}.`, false);
+        // Le compte existe déjà : un échec ici ne doit pas laisser croire que la création a échoué
+        const loginFailedMessage = `Compte créé pour ${data.username}, mais la connexion automatique a échoué. Connectez-vous via la page de connexion.`;
+        try {
+            const result = await loginAndRedirect(username, password);
+            if (result && !result.ok) {
+                showMessage(loginFailedMessage);
+            }
+        } catch (error) {
+            console.error(error);
+            showMessage(loginFailedMessage);
+        }
     } catch (error) {
         console.error(error);
         showMessage("Le serveur est inaccessible réessayez plus tard");

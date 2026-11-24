@@ -23,37 +23,10 @@ form.addEventListener("submit", async (event) => {
     }
 
     try {
-        const response = await fetch("/users/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({
-                username,
-                password
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            showMessage(data.error || "La connexion a échoué");
-            return;
+        const result = await loginAndRedirect(username, password);
+        if (result && !result.ok) {
+            showMessage(result.error || "La connexion a échoué");
         }
-
-        const sessionResponse = await fetch("/users/me", {
-            headers: { "Accept": "application/json" },
-            credentials: "same-origin"
-        });
-        const sessionData = await sessionResponse.json();
-
-        if (!sessionResponse.ok) {
-            showMessage(sessionData.error || "La session n’a pas pu être vérifiée. Réessayez.");
-            return;
-        }
-
-        window.location.assign("/");
     } catch (error) {
         console.error(error);
         showMessage("Le serveur est inaccessible, réessayez plus tard");
