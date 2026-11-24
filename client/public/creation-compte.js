@@ -51,6 +51,38 @@ form.addEventListener("submit", async (event) => {
             return;
         }
 
+        const loginResponse = await fetch("/users/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const loginData = await loginResponse.json();
+
+        if (!loginResponse.ok) {
+            showMessage(loginData.error || "La connexion a échoué, veuillez vous connecter via la page de connexion");
+            return;
+        }
+
+        const sessionResponse = await fetch("/users/me", {
+            headers: { "Accept": "application/json" },
+            credentials: "same-origin"
+        });
+        const sessionData = await sessionResponse.json();
+
+        if (!sessionResponse.ok) {
+            showMessage(sessionData.error || "La session n’a pas pu être vérifiée. Réessayez.");
+            return;
+        }
+
+        window.location.assign("/");
+
         form.reset();
         showMessage(`Compte créé pour ${data.username}.`, false);
     } catch (error) {
