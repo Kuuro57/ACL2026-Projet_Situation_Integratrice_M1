@@ -162,6 +162,40 @@ body.page-menu {
   font-size: 0.92rem;
 }
 
+.first-calendar-form {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.first-calendar-form label {
+  color: #252525;
+  font-size: 0.95rem;
+}
+
+.first-calendar-row {
+  display: flex;
+  gap: 8px;
+}
+
+.first-calendar-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  padding: 8px 10px;
+  color: #252525;
+  background: #ffffff;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.first-calendar-form .menu-error {
+  margin: 0;
+}
+
 .calendar-list {
   max-width: 1100px;
   display: grid;

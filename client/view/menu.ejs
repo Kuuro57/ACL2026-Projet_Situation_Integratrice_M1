@@ -35,7 +35,22 @@
 
         <section class="calendar-section" aria-labelledby="owned-calendars-title">
           <h2 id="owned-calendars-title">Mes agendas</h2>
-          <p id="owned-calendars-empty" class="section-empty" hidden>Vous n’avez encore créé aucun agenda.</p>
+          <form id="first-calendar-form" class="first-calendar-form" novalidate hidden>
+            <label for="first-calendar-name">Comment voulez-vous nommer votre premier agenda ?</label>
+            <div class="first-calendar-row">
+              <input
+                id="first-calendar-name"
+                name="name"
+                type="text"
+                maxlength="100"
+                autocomplete="off"
+                value="Mon agenda"
+                required
+              />
+              <button class="button-secondary" type="submit">Créer l’agenda</button>
+            </div>
+            <p id="first-calendar-message" class="menu-error" role="alert" aria-live="polite"></p>
+          </form>
           <ul id="owned-calendar-list" class="calendar-list"></ul>
         </section>
 
